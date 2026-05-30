@@ -1,26 +1,12 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-*.egg-info/
+# Node
+node_modules/
 dist/
-build/
-.eggs/
-
-# 가상환경
-venv/
-.venv/
-env/
-.env
+*.tsbuildinfo
 
 # 환경변수
+.env
 .env.local
 *.env
-
-# 사용자 데이터 (세션별 저장 파일)
-data/sessions/*/
 
 # IDE
 .vscode/
@@ -39,3 +25,11 @@ desktop.ini
 
 # 로그
 *.log
+npm-debug.log*
+
+# Legacy (Python) — 마이그레이션 후 제거됨
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+data/sessions/*/

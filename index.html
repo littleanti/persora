@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>페르소나 분석기</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><circle cx='16' cy='12' r='5' fill='white'/><path d='M6 26c0-5.5 4.5-9 10-9s10 3.5 10 9' stroke='white' stroke-width='2.5' stroke-linecap='round' fill='none'/></svg>" />
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-logo">🧠</div>
+  <h1>페르소나 분석기</h1>
+  <button class="header-sub" id="keyStatus" style="border:none;background:none;cursor:pointer;font:inherit;">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">연결 확인 중</span>
+  </button>
+</header>
+
+<!-- Pages -->
+<div class="pages">
+
+  <!-- ── PAGE: 페르소나 ── -->
+  <div class="page active" id="page-personas">
+    <div id="personaListContainer">
+      <div class="empty-state" id="emptyPersonas">
+        <div class="empty-icon">👤</div>
+        <h3>저장된 페르소나 없음</h3>
+        <p>대화 기록을 입력하면<br>AI가 상대방의 페르소나를 분석해요</p>
+        <button class="btn btn-primary btn-lg" id="emptyCreateBtn">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          새 페르소나 만들기
+        </button>
+      </div>
+      <div class="persona-list" id="personaList" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: 분석하기 ── -->
+  <div class="page" id="page-analyze">
+    <div class="no-persona-hint" id="noPersonaHint" style="display:none">
+      <span>⚠️</span>
+      <span>먼저 <strong>페르소나 탭</strong>에서 상대방의 대화를 분석해 페르소나를 만들어주세요.</span>
+    </div>
+
+    <p class="section-title">페르소나 선택</p>
+    <div class="persona-selector" id="personaSelector">
+      <div class="text-sm text-muted" style="padding:8px 4px">불러오는 중...</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+      <label class="form-label">
+        받은 메시지 입력
+        <span>— 상대방이 보낸 메시지를 입력하세요</span>
+      </label>
+      <textarea
+        class="form-textarea"
+        id="messageInput"
+        placeholder="예) 야 오늘 뭐해? 시간 돼?"
+        rows="4"
+      ></textarea>
+    </div>
+
+    <button class="btn btn-primary btn-full btn-lg" id="analyzeBtn">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      분석하기
+    </button>
+
+    <div id="analyzeResults" style="display:none">
+      <div class="divider"></div>
+      <div class="analysis-box" id="analysisBox">
+        <div class="analysis-box-label">
+          <span>🔍</span> AI 심리 분석
+        </div>
+        <p class="analysis-box-text" id="analysisText"></p>
+      </div>
+      <p class="section-title">원하는 답변 후보 3가지</p>
+      <div class="candidate-list" id="candidateList"></div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: 기록 ── -->
+  <div class="page" id="page-history">
+    <div class="history-empty" id="historyEmpty">아직 분석 기록이 없어요</div>
+    <div class="history-list" id="historyList" style="display:none"></div>
+  </div>
+
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" title="새 페르소나">
+  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-personas" data-page="personas">
+    <div class="nav-icon">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      <span class="nav-badge" id="personaBadge" style="display:none">0</span>
+    </div>
+    페르소나
+  </button>
+  <button class="nav-item" id="nav-analyze" data-page="analyze">
+    <div class="nav-icon">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+    </div>
+    분석하기
+  </button>
+  <button class="nav-item" id="nav-history" data-page="history">
+    <div class="nav-icon">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    기록
+  </button>
+</nav>
+
+<!-- ── Sheet: 페르소나 생성 ── -->
+<div class="sheet-overlay" id="createOverlay"></div>
+<div class="sheet" id="createSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">새 페르소나 만들기</span>
+    <button class="sheet-close" id="createSheetClose">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div style="display:flex;gap:10px;">
+      <div class="form-group" style="flex:1;">
+        <label class="form-label">상대방 이름 <span>* 필수</span></label>
+        <input class="form-input" id="personaName" placeholder="예) 김민준" />
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label class="form-label">나의 이름 <span>선택</span></label>
+        <input class="form-input" id="myName" placeholder="예) 나" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">
+        대화 기록 붙여넣기
+        <span>* 카카오톡, 문자 등 대화 내용</span>
+      </label>
+      <textarea
+        class="form-textarea"
+        id="conversationInput"
+        placeholder="김민준: 야 오늘 뭐해?&#10;나: 집에 있어. 왜?&#10;김민준: 아 그냥... 오늘 약속 있나 해서&#10;나: 없는데 왜?&#10;..."
+        style="min-height: 200px;"
+      ></textarea>
+      <p class="form-hint">📋 대화가 많을수록 더 정확한 페르소나가 만들어져요. 최소 10줄 이상 권장합니다.</p>
+    </div>
+    <button class="btn btn-primary btn-full btn-lg" id="createBtn">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      페르소나 생성
+    </button>
+  </div>
+</div>
+
+<!-- ── Sheet: 페르소나 상세 ── -->
+<div class="sheet-overlay" id="detailOverlay"></div>
+<div class="sheet" id="detailSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">페르소나 상세</span>
+    <button class="sheet-close" id="detailSheetClose">✕</button>
+  </div>
+  <div class="sheet-body" id="detailBody"></div>
+</div>
+
+<!-- ── Sheet: API 키 설정 (온보딩 + 변경/삭제) ── -->
+<div class="sheet-overlay" id="apikeyOverlay"></div>
+<div class="sheet" id="apikeySheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Gemini API 키 설정</span>
+    <button class="sheet-close" id="apikeySheetClose">✕</button>
+  </div>
+  <div class="sheet-body">
+    <p class="form-hint" style="margin-top:0;margin-bottom:14px;">
+      이 앱은 <strong>당신의 Google AI Studio(Gemini) API 키</strong>로 동작합니다.
+      키와 모든 데이터는 <strong>이 브라우저에만</strong> 저장되며 서버로 전송되지 않습니다.
+    </p>
+    <div class="form-group">
+      <label class="form-label">
+        API 키
+        <span>* Google AI Studio에서 발급</span>
+      </label>
+      <input class="form-input" id="apikeyInput" type="password" placeholder="AIza..." autocomplete="off" />
+      <p class="form-hint">
+        🔑 키 발급:
+        <a class="apikey-help-link" id="apikeyHelpLink" target="_blank" rel="noopener noreferrer">aistudio.google.com/app/apikey</a>
+      </p>
+    </div>
+    <button class="btn btn-primary btn-full btn-lg" id="apikeySaveBtn">
+      키 저장하고 시작하기
+    </button>
+    <button class="btn btn-danger btn-full" id="apikeyClearBtn" style="margin-top:10px;display:none;">
+      저장된 키 삭제
+    </button>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">AI 분석 중...</div>
+  <div class="loading-sub" id="loadingSub">Gemini가 열심히 생각하고 있어요 ☕</div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

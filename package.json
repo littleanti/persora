@@ -1,0 +1,22 @@
+{
+  "name": "persona-mirror",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "대화 기록으로 페르소나를 분석하고 상대가 원하는 답변을 추론하는 모바일 웹 앱 (브라우저 로컬 저장 + 사용자 Gemini 키)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.9.0",
+    "compression": "^1.7.4",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8"
+  }
+}
