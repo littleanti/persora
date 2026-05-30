@@ -9,6 +9,7 @@ export interface PersonaFields {
   vocabulary_examples?: string[];
   sentence_style?: string;
   emoji_symbol_usage?: string;
+  texting_habits?: string;
   emotional_tendencies?: string;
   what_they_value?: string;
   how_they_seek_response?: string;
@@ -54,11 +55,26 @@ export interface PersonaSummary {
   summary: string;
 }
 
-/** 페르소나 생성 입력. */
+/**
+ * 멀티모달 입력용 인라인 이미지.
+ * Gemini는 멀티모달 모델이므로 채팅 캡처 이미지를 그대로 전달하면
+ * 별도 OCR 없이 이미지에서 대화 텍스트를 읽어 페르소나를 생성한다.
+ */
+export interface InlineImage {
+  mimeType: string; // 예: 'image/png', 'image/jpeg'
+  data: string; // base64 (data URL 접두어 제외)
+}
+
+/**
+ * 페르소나 생성 입력.
+ * - 텍스트 모드: conversation 에 대화 텍스트를 넣는다 (images 비움).
+ * - 이미지 모드: images 에 채팅 캡처를 넣는다 (conversation 은 표시용 플레이스홀더/빈 값).
+ */
 export interface CreatePersonaInput {
   name: string;
   my_name: string;
   conversation: string;
+  images?: InlineImage[];
 }
 
 /** 키 검증 결과. */

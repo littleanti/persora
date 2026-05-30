@@ -23,7 +23,7 @@ export async function createPersona(input: CreatePersonaInput): Promise<PersonaR
   const myName = input.my_name.trim();
 
   const prompt = buildPersonaPrompt(input);
-  const text = await generate(prompt);
+  const text = await generate(prompt, input.images);
   const raw = extractJson(text);
 
   let personaData: PersonaFields;

@@ -1,7 +1,7 @@
 // 페르소나 목록 + 생성 시트 + 상세 시트.
 // 원본 index.html의 persona CRUD / detail 렌더링을 충실히 이식하되,
 // inline onclick 대신 이벤트 위임/리스너를 사용한다.
-import type { PersonaRecord, PersonaSummary, PersonaFields } from '../types';
+import type { PersonaRecord, PersonaSummary, PersonaFields, InlineImage } from '../types';
 import { $, $opt, escHtml, formatDate, getInitial } from './dom';
 import { showToast } from './toast';
 import { showLoading, hideLoading } from './loading';
@@ -20,6 +20,10 @@ export interface PersonaViewDeps {
 let deps: PersonaViewDeps;
 let personas: PersonaSummary[] = [];
 let currentDetailData: PersonaRecord | null = null;
+
+// 페르소나 생성 시트의 대화 입력 상태 (텍스트 vs 캡처 이미지).
+let convMode: 'text' | 'image' = 'text';
+let selectedImages: InlineImage[] = [];
 
 // ── 목록 / 선택기 ─────────────────────────────────────────────────────────────
 
@@ -127,17 +131,95 @@ function closeCreateSheet(): void {
   $('#createSheet').classList.remove('open');
 }
 
+// ── 대화 입력 모드(텍스트/이미지) ──────────────────────────────────────────────
+
+/** 텍스트 ↔ 캡처 이미지 입력 패널 전환. */
+function switchConvMode(mode: 'text' | 'image'): void {
+  convMode = mode;
+  const textPane = $opt('#convPaneText');
+  const imgPane = $opt('#convPaneImage');
+  if (textPane) textPane.style.display = mode === 'text' ? '' : 'none';
+  if (imgPane) imgPane.style.display = mode === 'image' ? '' : 'none';
+  document.querySelectorAll<HTMLElement>('#convModeTabs .persona-tab').forEach((b) => {
+    b.classList.toggle('active', b.dataset['mode'] === mode);
+  });
+}
+
+/** File → base64 InlineImage (data URL 접두어 제거). */
+function fileToInlineImage(file: File): Promise<InlineImage> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result);
+      const comma = result.indexOf(',');
+      resolve({
+        mimeType: file.type || 'image/png',
+        data: comma >= 0 ? result.slice(comma + 1) : result,
+      });
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('파일을 읽지 못했습니다'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderImagePreview(): void {
+  $('#imagePreview').innerHTML = selectedImages
+    .map(
+      (img, i) => `
+      <div class="thumb">
+        <img src="data:${img.mimeType};base64,${img.data}" alt="캡처 ${i + 1}" />
+        <button type="button" class="thumb-remove" data-idx="${i}" aria-label="삭제">✕</button>
+      </div>`,
+    )
+    .join('');
+}
+
+async function handleImageFiles(files: FileList | null): Promise<void> {
+  if (!files || files.length === 0) return;
+  try {
+    const imgs = await Promise.all(Array.from(files).map(fileToInlineImage));
+    selectedImages.push(...imgs);
+    renderImagePreview();
+  } catch {
+    showToast('이미지를 불러오지 못했습니다', 'error');
+  }
+}
+
+/** 생성 시트 입력값/이미지 상태 초기화. */
+function resetConvInputs(): void {
+  selectedImages = [];
+  ($('#conversationInput') as HTMLTextAreaElement).value = '';
+  ($('#conversationImages') as HTMLInputElement).value = '';
+  renderImagePreview();
+  switchConvMode('text');
+}
+
 async function createPersona(): Promise<void> {
   const name = ($('#personaName') as HTMLInputElement).value.trim();
   const myName = ($('#myName') as HTMLInputElement).value.trim();
-  const conversation = ($('#conversationInput') as HTMLTextAreaElement).value.trim();
   if (!name) {
     showToast('이름을 입력해주세요', 'error');
     return;
   }
-  if (conversation.length < 20) {
-    showToast('대화 기록이 너무 짧아요', 'error');
-    return;
+
+  // 입력 모드에 따라 대화 텍스트 / 캡처 이미지를 구성한다.
+  let conversation = '';
+  let images: InlineImage[] | undefined;
+
+  if (convMode === 'image') {
+    if (selectedImages.length === 0) {
+      showToast('캡처 이미지를 추가해주세요', 'error');
+      return;
+    }
+    images = selectedImages;
+    // 원본 대화는 이미지에 있으므로 표시용 플레이스홀더를 저장한다.
+    conversation = `[채팅 캡처 이미지 ${selectedImages.length}장으로 생성된 페르소나]`;
+  } else {
+    conversation = ($('#conversationInput') as HTMLTextAreaElement).value.trim();
+    if (conversation.length < 20) {
+      showToast('대화 기록이 너무 짧아요', 'error');
+      return;
+    }
   }
 
   // 키 게이트: 없으면 모달을 띄우고, 저장 없이 닫으면 중단
@@ -151,11 +233,11 @@ async function createPersona(): Promise<void> {
   showLoading('페르소나 생성 중...', loadingSub);
 
   try {
-    await personaService.createPersona({ name, my_name: myName, conversation });
+    await personaService.createPersona({ name, my_name: myName, conversation, images });
     showToast(`${name} 페르소나 생성 완료!`, 'success');
     ($('#personaName') as HTMLInputElement).value = '';
     ($('#myName') as HTMLInputElement).value = '';
-    ($('#conversationInput') as HTMLTextAreaElement).value = '';
+    resetConvInputs();
     await loadPersonas();
   } catch {
     showToast('페르소나 생성에 실패했습니다', 'error');
@@ -195,6 +277,7 @@ function buildPersonaFields(obj: Record<string, unknown>): string {
     vocabulary_examples: ['자주 쓰는 표현', true],
     sentence_style: ['문장 스타일', false],
     emoji_symbol_usage: ['이모지/특수문자', false],
+    texting_habits: ['메시징 습관', false],
     emotional_tendencies: ['감정 표현', false],
     what_they_value: ['중요 가치', false],
     how_they_seek_response: ['원하는 반응', false],
@@ -398,6 +481,28 @@ export function initPersonaView(d: PersonaViewDeps): void {
   });
   $('#createSheetClose').addEventListener('click', () => closeCreateSheet());
   $('#createOverlay').addEventListener('click', () => closeCreateSheet());
+
+  // 대화 입력 모드 탭 (텍스트 / 캡처 이미지)
+  $('#convModeTabs').addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-mode]');
+    if (btn) switchConvMode(btn.dataset['mode'] as 'text' | 'image');
+  });
+
+  // 캡처 이미지 선택
+  $('#conversationImages').addEventListener('change', (e) => {
+    void handleImageFiles((e.target as HTMLInputElement).files);
+  });
+
+  // 미리보기 썸네일 삭제 (이벤트 위임)
+  $('#imagePreview').addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('.thumb-remove');
+    if (!btn) return;
+    const idx = Number(btn.dataset['idx']);
+    if (!Number.isNaN(idx)) {
+      selectedImages.splice(idx, 1);
+      renderImagePreview();
+    }
+  });
 
   // 상세 시트 닫기
   $('#detailSheetClose').addEventListener('click', () => closeDetailSheet());

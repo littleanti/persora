@@ -14,9 +14,10 @@ export const PERSONA_FIELDS: string =
   "vocabulary_examples": ["대화에서 실제로 자주 등장한 단어나 표현을 5개 이상 직접 인용 (예: ㅋㅋ, 진짜?, 아 그거, 나중에, ㅠㅠ)"],
   "sentence_style": "문장 길이와 구조 특징 — 짧은 단답 위주인지 길고 설명적인지, 완성된 문장인지 단편적인지, 실제 문장 예시 2-3개 포함",
   "emoji_symbol_usage": "이모지/이모티콘/특수문자 사용 패턴 — 어떤 것을 얼마나 자주 쓰는지, 없으면 '사용 안 함'",
+  "texting_habits": "메시징 습관(말투 지문) — 메시지당 길이(단답/장문), 띄어쓰기·맞춤법 파괴 여부, 줄임말/초성체, 문장부호 버릇(마침표/물결~/.../!!), 답장의 첫 리액션 패턴 등 실제 관찰된 버릇을 구체적으로",
   "emotional_tendencies": "감정 표현 방식 — 감정을 직접 드러내는지 간접적으로 암시하는지, 강조 표현 패턴",
   "what_they_value": "대화에서 중요하게 여기는 가치와 요소",
-  "how_they_seek_response": "어떤 종류의 반응과 답변을 원하는 경향이 있는지",
+  "how_they_seek_response": "어떤 종류의 반응과 답변을 원하는 경향이 있는지 — 표면적 요청 너머의 진짜 정서적 욕구(인정/안심/공감/지지/해결 등)까지",
   "relationship_dynamics": "이 관계에서 보이는 역할과 패턴"`;
 
 /**
@@ -27,12 +28,24 @@ export const PERSONA_FIELDS: string =
 export function buildPersonaPrompt(input: CreatePersonaInput): string {
   const { name, conversation } = input;
   const myName = input.my_name.trim();
+  const useImages = !!input.images && input.images.length > 0;
 
   const personaInstruction = `페르소나 분석 시 다음 사항을 반드시 지켜주세요:
 - vocabulary_examples: 대화에서 실제로 등장한 단어/표현을 그대로 인용하세요. 추상적 설명 금지.
-- sentence_style: 실제 문장 예시를 2-3개 직접 인용하세요.
+- sentence_style: 실제 문장 예시를 2-3개 직접 인용하세요. (나중에 이 말투를 그대로 복제할 수 있을 만큼 구체적으로)
 - speech_level: 실제 사용된 어미 패턴을 구체적으로 명시하세요 (예: ~야, ~지, ~어?, ~ㄴ데).
-- emoji_symbol_usage: 실제 사용된 이모지/이모티콘을 그대로 나열하세요.`;
+- emoji_symbol_usage: 실제 사용된 이모지/이모티콘을 그대로 나열하세요.
+- texting_habits: 메시지 길이·띄어쓰기·줄임말·문장부호 버릇을 실제 관찰된 그대로 적으세요.
+- emotional_tendencies / how_they_seek_response: 표면적 말 너머의 감정과 진짜 욕구(인정·안심·공감·지지 등)까지 짚으세요.`;
+
+  // 입력 소스 블록: 텍스트면 대화를 그대로, 이미지면 첨부 캡처를 읽도록 지시.
+  // 이미지 모드에서는 말풍선 위치(좌/우)·발신자 이름표로 누가 누구인지 판별하라고 안내한다.
+  const sourceBlock = useImages
+    ? `대화 기록은 첨부된 채팅 캡처 이미지에 들어 있습니다. 이미지를 꼼꼼히 읽어 대화 내용을 파악하세요.
+- 말풍선의 좌/우 위치와 이름표를 근거로 각 발화가 누구의 것인지 판별하세요.
+- 여러 장이면 위→아래, 앞→뒤 순서로 시간 흐름을 이어서 해석하세요.`
+    : `대화 기록:
+${conversation}`;
 
   if (myName) {
     return `다음은 "${myName}"과 "${name}" 사이의 실제 대화 기록입니다.
@@ -40,8 +53,7 @@ export function buildPersonaPrompt(input: CreatePersonaInput): string {
 
 ${personaInstruction}
 
-대화 기록:
-${conversation}
+${sourceBlock}
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트, 설명, 마크다운은 절대 포함하지 마세요:
 {
@@ -54,14 +66,15 @@ ${PERSONA_FIELDS}
 }
 
 other_persona는 "${name}"의 페르소나이고, my_persona는 "${myName}"의 페르소나입니다.
-각 페르소나는 이 두 사람의 관계 맥락에서 분석되어야 합니다.`;
+각 페르소나는 이 두 사람의 관계 맥락에서 분석되어야 합니다.
+
+★ my_persona("${myName}")의 sentence_style·vocabulary_examples·texting_habits에는 "${myName}"이 실제로 보낸 문장과 표현을 그대로 인용하세요. 이 정보는 나중에 "${myName}"의 말투를 똑같이 재현해 답장을 쓰는 데 쓰입니다.`;
   } else {
     return `다음은 "${name}"과의 실제 대화 기록입니다. 이 대화를 깊이 분석하여 ${name}의 페르소나와 말투를 만들어주세요.
 
 ${personaInstruction}
 
-대화 기록:
-${conversation}
+${sourceBlock}
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트, 설명, 마크다운은 절대 포함하지 마세요:
 {
@@ -100,6 +113,10 @@ function speechSummary(p: Record<string, unknown>, personName: string): string {
     parts.push(`- 이모지/특수문자: ${p['emoji_symbol_usage']}`);
   }
 
+  if (p['texting_habits']) {
+    parts.push(`- 메시징 습관: ${p['texting_habits']}`);
+  }
+
   if (parts.length === 0) return '';
   return `${personName}의 말투 특징:\n` + parts.join('\n');
 }
@@ -136,10 +153,11 @@ ${myPersonaStr}
 
     if (mySpeech) {
       mySpeechInstruction = `
-★ 중요: 답변(response)은 반드시 ${myName}의 실제 말투로 작성하세요.
+★ 가장 중요 — 답변(response)은 반드시 ${myName}의 실제 말투로 작성하세요.
 ${mySpeech}
-위 말투를 그대로 반영하여 ${myName}이 실제로 보낼 법한 문자/메시지 형식으로 작성하세요.
-어색한 문어체, 존댓말, 격식체를 쓰지 마세요. ${myName}의 평소 말투 그대로 써주세요.`;
+위 말투 지문을 그대로 반영하여 ${myName}이 실제로 폰으로 칠 법한 문자/메시지 형식으로 쓰세요.
+공감한다고 해서 말투를 바꾸지 마세요. ${myName}의 평소 말투(짧은 반말, 무뚝뚝함, 장난스러움 등 무엇이든) 그 "안에서" 공감을 표현하세요 — 짧고 캐주얼한 한마디도 충분히 따뜻할 수 있습니다.
+어색한 문어체, 갑작스러운 존댓말, 격식체, ${myName}이 평소 안 쓰던 미사여구나 상담사 같은 말투를 넣지 마세요.`;
     }
   }
 
@@ -159,6 +177,12 @@ ${mySpeech}
     ? `${myName}의 말투로 작성`
     : '자연스러운 말투로 작성';
 
+  // 공감 가이드라인 — 3개 답변 후보 모두에 공통 적용 (감정→욕구 인식 → 공감 우선 → 안티패턴 금지).
+  const empathyGuide = `공감 가이드라인 (3개 답변 후보 모두에 공통 적용):
+1. 먼저 ${name}이 지금 느끼는 핵심 감정과 그 밑에 깔린 진짜 욕구를 짚으세요 (예: 서운함→인정받고 싶음, 불안→안심받고 싶음).
+2. 모든 답변은 그 감정을 먼저 알아주고 받아들이는 말로 시작하세요. 조언·해결·화제 전환은 반드시 그 다음입니다.
+3. 다음은 절대 금지: 섣부른 조언/훈수, 감정 축소("별거 아냐", 성급한 "괜찮아질 거야"), 영혼 없는 진부한 위로, 질문만 줄줄이 늘어놓는 심문, ${name}의 감정을 평가·판단하기.`;
+
   return `당신은 지금 "${name}"의 내면 심리를 완벽히 이해하는 분석가입니다.
 
 ${name}의 성격 및 소통 방식 분석:
@@ -169,31 +193,38 @@ ${name}이(가) ${receiverLabel}에게 다음 메시지를 보냈습니다:
 "${message}"
 
 ${name}의 성격, 소통 방식, 말투, 감정 표현 방식, 관계 패턴을 깊이 고려하여 분석하세요:
+- ${name}이 지금 느끼는 핵심 감정은 무엇이고, 그 밑에 깔린 진짜 욕구는 무엇인가?
 - ${name}이 이 메시지를 보낸 진짜 심리적 이유는 무엇인가?
 - ${name}은 ${receiverLabel}으로부터 어떤 종류의 답변을 듣고 싶어하는가?
 ${speechToneQuestion}
 ${myPersonaQuestion}
-- 가능한 답변 후보 3가지는 무엇인가? (각각 다른 뉘앙스와 방향으로)
+
+${empathyGuide}
+
+- 위 공감을 기본으로 깔되, 공감 "이후"의 방향만 다르게 한 답변 후보 3가지를 만드세요:
+  (1) 감정에 더 깊이 머무르며 수용·지지하는 답변
+  (2) 공감한 뒤 함께 해결책이나 다음 행동을 제안하는 답변
+  (3) 공감한 뒤 분위기를 가볍게(유머·온기) 풀어주는 답변
 ${mySpeechInstruction}
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트나 마크다운은 절대 포함하지 마세요:
 {
-  "analysis": "${name}이(가) 이 메시지를 보낸 심리적 배경과 기대하는 반응에 대한 분석 (2-3문장)",
+  "analysis": "${name}이 지금 느끼는 핵심 감정과 그 밑의 진짜 욕구, 그리고 이 메시지를 보낸 심리적 배경·기대하는 반응 (2-3문장)",
   "candidates": [
     {
-      "label": "답변 유형 (예: 공감형, 해결책 제시형, 감정 표현형 등)",
-      "reason": "${name}이 이 답변을 원하는 구체적인 이유",
-      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — ${responseDesc}"
+      "label": "깊은 공감·수용형",
+      "reason": "${name}이 이 답변을 원하는 구체적인 이유 (어떤 감정/욕구를 채워주는지)",
+      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 깊이 수용·지지, ${responseDesc}"
     },
     {
-      "label": "답변 유형",
-      "reason": "${name}이 이 답변을 원하는 구체적인 이유",
-      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — ${responseDesc}"
+      "label": "공감 + 함께 해결형",
+      "reason": "${name}이 이 답변을 원하는 구체적인 이유 (어떤 감정/욕구를 채워주는지)",
+      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 함께 해결/다음 행동 제안, ${responseDesc}"
     },
     {
-      "label": "답변 유형",
-      "reason": "${name}이 이 답변을 원하는 구체적인 이유",
-      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — ${responseDesc}"
+      "label": "공감 + 분위기 전환형",
+      "reason": "${name}이 이 답변을 원하는 구체적인 이유 (어떤 감정/욕구를 채워주는지)",
+      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 가볍게(유머·온기) 분위기 전환, ${responseDesc}"
     }
   ]
 }`;

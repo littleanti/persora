@@ -4,10 +4,14 @@
 import { GoogleGenAI } from '@google/genai';
 import { GEMINI_MODEL } from '../config';
 import { getApiKey } from './apiKey';
-import type { KeyValidationResult } from '../types';
+import type { KeyValidationResult, InlineImage } from '../types';
 
-/** 저장된 API 키로 Gemini에 프롬프트를 전송하고 텍스트를 반환한다. */
-export async function generate(prompt: string): Promise<string> {
+/**
+ * 저장된 API 키로 Gemini에 프롬프트를 전송하고 텍스트를 반환한다.
+ * images 가 주어지면 멀티모달 요청을 구성한다 — Gemini가 이미지에서
+ * 직접 대화 텍스트를 읽어 분석한다(별도 OCR 불필요).
+ */
+export async function generate(prompt: string, images?: InlineImage[]): Promise<string> {
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error('API 키가 설정되지 않았습니다. 키를 먼저 입력해주세요.');
@@ -15,10 +19,25 @@ export async function generate(prompt: string): Promise<string> {
 
   const ai = new GoogleGenAI({ apiKey });
 
+  // 텍스트 전용이면 문자열 그대로, 이미지가 있으면 parts 배열로 멀티모달 구성.
+  const contents = images && images.length > 0
+    ? [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            ...images.map((img) => ({
+              inlineData: { mimeType: img.mimeType, data: img.data },
+            })),
+          ],
+        },
+      ]
+    : prompt;
+
   try {
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
-      contents: prompt,
+      contents,
     });
     return response.text ?? '';
   } catch (err: unknown) {
