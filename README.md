@@ -4,7 +4,8 @@
 
 **v2 — Client-First 아키텍처**: 개인 데이터는 전부 **내 브라우저**에 저장되고, AI 분석은 **내 Google AI Studio API 키**로 브라우저가 직접 수행합니다. 서버는 정적 파일만 서빙하며 대화 내용을 절대 보관하지 않습니다.
 
-> 코드네임/저장소: `persona-mirror` · 앱 표시명: **Persora** (한·영 단일 표기)
+> 저장소/패키지: `persora` · 앱 표시명: **Persora** (한·영 단일 표기)
+> (브라우저 IndexedDB 이름은 기존 사용자 데이터 호환을 위해 `persona-mirror`로 유지)
 
 ---
 
@@ -80,7 +81,7 @@ npm start
 ## 프로젝트 구조
 
 ```
-persona-mirror/
+persora/
 ├── docs/                       # WIREFRAMES / PRD / TRD / PLAN
 ├── index.html                  # Vite React 엔트리 (#root)
 ├── server/index.js             # Express 정적 서버 (dist/ 서빙)

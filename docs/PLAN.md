@@ -5,7 +5,7 @@
 ## 1. 목표 디렉터리 구조
 
 ```
-persona-mirror/
+persora/
 ├── docs/
 │   ├── PRD.md
 │   ├── TRD.md
