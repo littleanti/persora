@@ -37,15 +37,6 @@ export default function ApiKeyStatus() {
     }
   };
 
-  if (!apiKey) {
-    return (
-      <button className="flex items-center gap-1.5 text-xs text-slate-500" title={t('apikey.title')}>
-        <span className="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0" />
-        <span className="font-medium">{t('status.noKey')}</span>
-      </button>
-    );
-  }
-
   if (editing) {
     return (
       <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -71,17 +62,32 @@ export default function ApiKeyStatus() {
         <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
           {t('common.cancel')}
         </button>
-        <button
-          onClick={() => {
-            clearApiKey();
-            pushToast(t('toast.keyDeleted'), 'success');
-            setEditing(false);
-          }}
-          className="text-red-400 hover:text-red-600 transition-colors"
-        >
-          {t('common.delete')}
-        </button>
+        {apiKey && (
+          <button
+            onClick={() => {
+              clearApiKey();
+              pushToast(t('toast.keyDeleted'), 'success');
+              setEditing(false);
+            }}
+            className="text-red-400 hover:text-red-600 transition-colors"
+          >
+            {t('common.delete')}
+          </button>
+        )}
       </div>
+    );
+  }
+
+  if (!apiKey) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors"
+        title={t('apikey.title')}
+      >
+        <span className="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0" />
+        <span className="font-medium">{t('status.noKey')}</span>
+      </button>
     );
   }
 

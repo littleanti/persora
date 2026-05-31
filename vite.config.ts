@@ -4,6 +4,7 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   root: '.',
+  base: '/persora/',
   plugins: [react()],
   resolve: {
     alias: {

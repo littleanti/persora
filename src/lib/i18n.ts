@@ -24,6 +24,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'nav.personas': '페르소나',
     'nav.analyze': '분석하기',
     'nav.history': '기록',
+    'nav.settings': '설정',
     'fab.newPersona': '새 페르소나',
 
     // 페르소나 페이지 (빈 상태)
@@ -133,13 +134,14 @@ const MESSAGES: Record<Lang, Dict> = {
     'apikey.welcomeTitle': 'Persora에 오신 걸 환영합니다',
     'apikey.welcomeDesc': '분석은 Google AI Studio (Gemini)를 사용합니다. 본인 API 키를 입력해 주세요.',
     'apikey.intro':
-      '이 앱은 <strong>당신의 Google AI Studio(Gemini) API 키</strong>로 동작합니다. 키와 모든 데이터는 <strong>이 브라우저에만</strong> 저장되며 서버로 전송되지 않습니다.',
+      '이 앱은 당신의 Google AI Studio(Gemini) API 키로 동작합니다. API 키는 이 브라우저의 localStorage에 저장되고, 대화 내용과 캡처 이미지는 분석을 위해 Google Gemini API로 직접 전송됩니다.',
     'apikey.keyLabel': 'API 키',
     'apikey.keyLabelHint': '* Google AI Studio에서 발급',
-    'apikey.consent': '본 기기에만 저장되며 서버로 전송되지 않음을 이해했습니다.',
+    'apikey.consent': '대화 내용이 Gemini API로 전송되고, 로컬 데이터는 브라우저 데이터 삭제나 기기 변경 시 복구할 수 없음을 이해했습니다.',
     'apikey.helpCta': 'AI Studio에서 키 발급받기 ↗',
     'btn.saveKey': '키 저장하고 시작하기',
     'btn.clearKey': '저장된 키 삭제',
+    'btn.later': '나중에 하기',
 
     // 로딩
     'loading.default': 'AI 분석 중...',
@@ -169,7 +171,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'toast.deleteFail': '삭제에 실패했습니다',
     'toast.personaDeleted': '{name} 삭제 완료',
     'toast.invalidKeyFormat': 'API 키 형식이 올바르지 않습니다',
-    'toast.confirmLocalOnly': '로컬 저장 안내를 확인해주세요',
+    'toast.confirmLocalOnly': '개인정보 및 로컬 저장 안내를 확인해주세요',
     'toast.keyValidateFail': 'API 키 검증에 실패했습니다',
     'toast.keySaved': 'API 키가 저장되었습니다',
     'toast.keyDeleted': '저장된 키를 삭제했습니다',
@@ -203,6 +205,30 @@ const MESSAGES: Record<Lang, Dict> = {
     'parse.failAnalysis': 'AI 응답을 파싱하는 데 문제가 발생했습니다. 원본 응답을 확인하세요.',
     'parse.failLabel': '원본 응답',
     'parse.failReason': 'JSON 파싱 실패',
+
+    // 설정 / 운영
+    'settings.subtitle': '로컬 데이터, 백업, 개인정보 안내를 관리합니다.',
+    'settings.dataTitle': '데이터 관리',
+    'settings.dataDesc': '백업 파일에는 API 키가 포함되지 않습니다. 같은 ID의 데이터는 가져오기 시 덮어씁니다.',
+    'settings.exportBtn': '백업 내보내기',
+    'settings.importBtn': '백업 가져오기',
+    'settings.clearBtn': '전체 데이터 삭제',
+    'settings.privacyTitle': '개인정보와 보안',
+    'settings.privacyDesc': 'Persora는 서버 계정이나 자체 데이터베이스 없이 이 브라우저에서 동작합니다.',
+    'settings.privacyLocal': '페르소나, 원본 대화, 분석 기록, 작성 중인 대화는 이 브라우저의 IndexedDB/localStorage에 저장됩니다.',
+    'settings.privacyGemini': '분석을 실행하면 입력한 대화 텍스트와 캡처 이미지는 Google Gemini API로 직접 전송됩니다.',
+    'settings.privacyKey': 'Gemini API 키는 localStorage에 저장됩니다. Google Cloud에서 Gemini API만 허용하고 가능하면 HTTP referrer를 littleanti.github.io로 제한하세요.',
+    'settings.privacyLoss': '브라우저 데이터 삭제, 시크릿 모드 종료, 기기 변경 시 로컬 데이터는 복구할 수 없습니다. 필요한 데이터는 백업으로 보관하세요.',
+    'settings.privacyConsent': '타인의 대화나 민감정보를 분석하기 전에는 필요한 동의를 받고, 주민번호·카드번호 같은 고위험 정보는 입력하지 마세요.',
+    'settings.disclaimerTitle': '분석 결과 안내',
+    'settings.disclaimerDesc': 'AI가 만든 페르소나와 답변 후보는 참고용입니다. 의료, 법률, 심리 진단이나 중요한 관계 결정을 대신하지 않습니다.',
+    'settings.confirmClearAll': 'API 키, 페르소나, 분석 기록, 작성 중인 대화를 이 브라우저에서 모두 삭제할까요? 이 작업은 되돌릴 수 없습니다.',
+    'settings.toastExported': '백업 파일을 만들었습니다',
+    'settings.toastExportFailed': '백업 내보내기에 실패했습니다',
+    'settings.toastImported': '백업을 가져왔습니다: 페르소나 {personas}개, 기록 {analyses}개, 드래프트 {drafts}개',
+    'settings.toastImportFailed': '백업 파일을 가져오지 못했습니다',
+    'settings.toastCleared': '로컬 데이터를 모두 삭제했습니다',
+    'settings.toastClearFailed': '전체 데이터 삭제에 실패했습니다',
   },
   en: {
     // Header / status
@@ -216,6 +242,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'nav.personas': 'Personas',
     'nav.analyze': 'Analyze',
     'nav.history': 'History',
+    'nav.settings': 'Settings',
     'fab.newPersona': 'New persona',
 
     // Personas page (empty state)
@@ -325,13 +352,14 @@ const MESSAGES: Record<Lang, Dict> = {
     'apikey.welcomeTitle': 'Welcome to Persora',
     'apikey.welcomeDesc': 'Analysis uses Google AI Studio (Gemini). Enter your own API key to begin.',
     'apikey.intro':
-      'This app runs on <strong>your own Google AI Studio (Gemini) API key</strong>. Your key and all data are stored <strong>only in this browser</strong> and never sent to any server.',
+      'This app runs on your own Google AI Studio (Gemini) API key. The key is stored in this browser localStorage, and conversation text or screenshots are sent directly to the Google Gemini API for analysis.',
     'apikey.keyLabel': 'API key',
     'apikey.keyLabelHint': '* issued by Google AI Studio',
-    'apikey.consent': 'I understand this is stored only on this device and is not sent to this app server.',
+    'apikey.consent': 'I understand conversation data is sent to the Gemini API, and local data cannot be recovered if browser data is cleared or I switch devices.',
     'apikey.helpCta': 'Get a key from AI Studio ↗',
     'btn.saveKey': 'Save key & start',
     'btn.clearKey': 'Delete saved key',
+    'btn.later': 'Later',
 
     // Loading
     'loading.default': 'AI analyzing…',
@@ -361,7 +389,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'toast.deleteFail': 'Failed to delete',
     'toast.personaDeleted': '{name} deleted',
     'toast.invalidKeyFormat': 'Invalid API key format',
-    'toast.confirmLocalOnly': 'Please confirm the local-only storage notice',
+    'toast.confirmLocalOnly': 'Please confirm the privacy and local storage notice',
     'toast.keyValidateFail': 'Failed to validate the API key',
     'toast.keySaved': 'API key saved',
     'toast.keyDeleted': 'Saved key deleted',
@@ -395,6 +423,30 @@ const MESSAGES: Record<Lang, Dict> = {
     'parse.failAnalysis': 'There was a problem parsing the AI response. See the raw response below.',
     'parse.failLabel': 'Raw response',
     'parse.failReason': 'JSON parsing failed',
+
+    // Settings / operations
+    'settings.subtitle': 'Manage local data, backups, and privacy notices.',
+    'settings.dataTitle': 'Data management',
+    'settings.dataDesc': 'Backup files do not include your API key. Imported records with the same ID overwrite local records.',
+    'settings.exportBtn': 'Export backup',
+    'settings.importBtn': 'Import backup',
+    'settings.clearBtn': 'Delete all data',
+    'settings.privacyTitle': 'Privacy and security',
+    'settings.privacyDesc': 'Persora runs in this browser without server accounts or its own database.',
+    'settings.privacyLocal': 'Personas, original conversations, analysis history, and drafts are stored in this browser IndexedDB/localStorage.',
+    'settings.privacyGemini': 'When you analyze, your conversation text and screenshots are sent directly to the Google Gemini API.',
+    'settings.privacyKey': 'Your Gemini API key is stored in localStorage. In Google Cloud, restrict it to the Gemini API and, where possible, to the littleanti.github.io HTTP referrer.',
+    'settings.privacyLoss': 'If browser data is cleared, private browsing ends, or you change devices, local data cannot be recovered. Export a backup when needed.',
+    'settings.privacyConsent': 'Get any necessary consent before analyzing someone else’s conversation, and avoid high-risk sensitive data such as government IDs or card numbers.',
+    'settings.disclaimerTitle': 'About AI results',
+    'settings.disclaimerDesc': 'AI-generated personas and replies are for reference only. They do not replace medical, legal, psychological, or important relationship decisions.',
+    'settings.confirmClearAll': 'Delete the API key, personas, history, and drafts from this browser? This cannot be undone.',
+    'settings.toastExported': 'Backup file created',
+    'settings.toastExportFailed': 'Failed to export backup',
+    'settings.toastImported': 'Backup imported: {personas} personas, {analyses} records, {drafts} drafts',
+    'settings.toastImportFailed': 'Failed to import backup file',
+    'settings.toastCleared': 'All local data deleted',
+    'settings.toastClearFailed': 'Failed to delete all data',
   },
 };
 

@@ -15,10 +15,11 @@
 │   │ PersonaPage    │──▶│ 유스케이스 / 정규화 / 저장 호출 │──┐        │
 │   │ AnalyzePage    │   └──────────────┬─────────────────┘  │        │
 │   │ HistoryPage    │                  │                    │        │
+│   │ SettingsPage   │                  │                    │        │
 │   └──────┬─────────┘       ┌──────────┴─────────┐          │        │
 │          │                 │                    │          │        │
 │   ┌─ components/* ─┐ ┌─ lib/repos/*Repo.ts ─┐ ┌─ lib/gemini.ts ─┐   │
-│   │ modal/toast/nav│ │ IndexedDB + Cookie   │ │ @google/genai   │   │
+│   │ modal/toast/nav│ │ IndexedDB + storage  │ │ @google/genai   │   │
 │   │ status/loading │ │ personas/analyses/key│ │ + prompts.ts    │   │
 │   └───────────────┘ └──────────────────────┘ └────────┬────────┘   │
 └───────────────────────────────────────────────┼────────────────────┘
@@ -26,12 +27,12 @@
                                                  ▼
                               generativelanguage.googleapis.com (Gemini)
 
-         정적 자산(GET /, /assets/*) ──▶ Node(Express) 정적 서버 ──▶ dist/
+         정적 자산(GET /persora/, /persora/assets/*) ──▶ GitHub Pages ──▶ dist/
 ```
 
-- **데이터 평면**: 페르소나/분석 = IndexedDB. API 키 = 쿠키. 둘 다 브라우저 로컬.
+- **데이터 평면**: 페르소나/분석 = IndexedDB. API 키/드래프트 = localStorage. 둘 다 브라우저 로컬.
 - **연산 평면**: 브라우저 → Gemini 직접 호출(사용자 키). 서버 미경유.
-- **서버 평면**: 빌드된 `dist/`를 서빙하는 무상태 정적 서버. API 라우트 없음.
+- **서버 평면**: GitHub Pages가 빌드된 `dist/`를 정적 서빙. 로컬 `server/index.js`는 선택적 미리보기 서버.
 
 ## 2. 기술 스택
 
@@ -42,8 +43,8 @@
 | UI | React 18 + React Router + Zustand | 형제 앱 `say-awsomely`와 셸/상태/모달 패턴 동기화 |
 | 스타일 | Tailwind CSS + 공용 토큰 | 형제 앱의 인디고/슬레이트 토큰, soft shadow, fade/slide animation 재사용 |
 | LLM | `@google/genai` (Gemini) | 브라우저 직접 호출 |
-| 저장 | IndexedDB(개인 데이터) + Cookie(API 키) | 서버 미저장 |
-| 서버 | Node + Express(`compression`, `sirv` 대체 가능) | `dist/` 정적 서빙 + SPA fallback |
+| 저장 | IndexedDB(개인 데이터) + localStorage(API 키/드래프트) | 서버 미저장 |
+| 서버 | GitHub Pages + 선택적 Node Express preview | `dist/` 정적 서빙 |
 | 런타임 | Node 18+ | |
 
 > SDK 미사용 대안: `fetch`로 `v1beta/models/{model}:generateContent?key=...` 직접 호출도 가능. 기본은 `@google/genai`, 폴백 가능하도록 `gemini.ts`에 캡슐화.
@@ -102,9 +103,10 @@ export interface PersonaSummary {
 
 ### 3.2 `src/lib/config.ts`
 ```ts
-export const GEMINI_MODEL = 'gemini-2.5-flash'; // config 한 곳에서 관리
-export const COOKIE_KEY_NAME = 'pm_gemini_key';
-export const COOKIE_MAX_AGE_DAYS = 365;
+export const TEXT_MODEL = 'gemini-3.1-flash-lite';
+export const IMAGE_MODEL = 'gemma-4-31b-it';
+export const API_KEY_STORAGE_KEY = 'pm_gemini_key';
+export const LEGACY_COOKIE_KEY_NAME = 'pm_gemini_key';
 export const DB_NAME = 'persona-mirror';
 export const DB_VERSION = 1;
 export const STORE_PERSONAS = 'personas';
@@ -112,14 +114,15 @@ export const STORE_ANALYSES = 'analyses';
 export const GEMINI_API_KEY_HELP_URL = 'https://aistudio.google.com/app/apikey';
 ```
 
-### 3.3 `src/lib/repos/settingsRepo.ts` (쿠키 — Wave 1: AI)
+### 3.3 `src/lib/repos/settingsRepo.ts` (localStorage — Wave 1: AI)
 ```ts
 export function getApiKey(): string | null;
-export function setApiKey(key: string): void;     // 쿠키 저장(만료/Secure/SameSite 처리)
+export function setApiKey(key: string): void;     // localStorage 저장
 export function clearApiKey(): void;
 export function hasApiKey(): boolean;
 export function looksLikeKey(key: string): boolean; // 형식 사전검증(공백/길이)
 ```
+- 구버전 쿠키(`pm_gemini_key`)는 최초 읽기 시 localStorage로 마이그레이션하고 쿠키는 만료시킨다.
 
 ### 3.4 `src/lib/gemini.ts` (Gemini — Wave 1: AI)
 ```ts
@@ -182,12 +185,13 @@ export async function removeAnalysis(id: string): Promise<void>;
 
 ### 3.9 `src/components/*` + `src/routes/*` (React Wave)
 - `components/Toast.tsx`: Zustand toast queue를 렌더한다. 형제 앱의 bottom-right rounded toast 패턴을 따른다.
-- `components/OnboardingModal.tsx`: 키가 없을 때 중앙 카드 모달을 렌더한다. 기존 쿠키 저장/검증 계약은 유지한다.
+- `components/OnboardingModal.tsx`: 키가 없을 때 중앙 카드 모달을 렌더한다. localStorage 저장/검증 계약을 사용한다.
 - `components/ApiKeyStatus.tsx`: 헤더 상태 버튼과 키 변경/삭제 UI를 렌더한다.
 - `components/LanguageToggle.tsx`: KO/EN segmented pill 토글을 렌더한다.
 - `routes/PersonaPage.tsx`: 페르소나 목록/생성 모달/상세 모달을 React state로 렌더한다.
 - `routes/AnalyzePage.tsx`: 페르소나 선택, 받은 메시지 분석, 후보 복사 UI를 React state로 렌더한다.
 - `routes/HistoryPage.tsx`: 기록 목록/펼치기/삭제를 React state로 렌더한다.
+- `routes/SettingsPage.tsx`: 백업 내보내기/가져오기, 전체 로컬 데이터 삭제, 개인정보/면책 고지를 렌더한다.
 - `main.tsx`는 형제 앱과 동일하게 `HashRouter`를 사용한다. `App.tsx`는 route shell, top status bar, bottom nav, onboarding gate, toast container를 담당한다.
 
 ## 4. 핵심 변환 규칙 (기존 → 신규)
@@ -218,11 +222,12 @@ export async function removeAnalysis(id: string): Promise<void>;
 - 타임아웃/에러: 네트워크/4xx/5xx를 사용자 친화 토스트로 변환. 키 인증 실패(400/403) 시 키 재입력 유도.
 - JSON 강제: 프롬프트로 JSON-only 지시(기존과 동일). 필요 시 `responseMimeType: 'application/json'` 옵션 적용 가능(폴백 유지).
 
-## 6. 서버 (`server/index.js`)
-- Express로 `dist/`를 정적 서빙. `compression` 적용. SPA fallback(`*` → `index.html`)은 단일 페이지라 선택.
-- 포트 `process.env.PORT || 8000`. `host 0.0.0.0`(모바일 동일망 접속 유지).
+## 6. 배포 / 서버
+- 프로덕션 배포 대상은 GitHub Pages 프로젝트 사이트 `https://littleanti.github.io/persora/`.
+- `vite.config.ts`의 `base`는 `/persora/`.
+- `.github/workflows/deploy-pages.yml`이 `main` push 시 `npm ci` → `npm run build` → `dist/` artifact 업로드 → Pages 배포를 수행한다.
+- 로컬 `server/index.js`는 선택적 정적 미리보기 서버다. GitHub Pages에서는 이 서버의 HTTP 보안 헤더가 적용되지 않으므로 `index.html`에 referrer policy와 CSP meta를 둔다.
 - **API 라우트/DB/세션/CORS 미들웨어 없음.** (Gemini는 브라우저가 직접 호출하므로 서버 CORS 불필요)
-- 보안 헤더(기본): `X-Content-Type-Options: nosniff` 등 경량 적용 가능.
 
 ## 7. 빌드 & 실행
 - `npm run dev` — Vite React 개발 서버(HMR).
@@ -230,8 +235,11 @@ export async function removeAnalysis(id: string): Promise<void>;
 - `npm start` — `node server/index.js` (dist 서빙).
 
 ## 8. 보안 고려
-- XSS: 모든 사용자/LLM 출력은 기존 `escHtml`로 이스케이프(유지). 의존성 최소화.
-- 키 저장: 쿠키 `SameSite=Lax`, HTTPS 시 `Secure`. `HttpOnly`는 JS가 키를 읽어 Gemini 호출에 써야 하므로 **불가**(설계상 클라이언트 보관). 사용자 키이며 사용자 기기 한정임을 명시.
+- XSS: 사용자/LLM 출력은 React 텍스트 렌더링으로 처리한다. HTML/Markdown 렌더링을 추가하면 sanitizer가 필요하다.
+- 키 저장: API 키는 localStorage에 저장한다. 브라우저 JS가 Gemini 호출에 키를 사용해야 하므로 클라이언트에서 읽을 수 있다. 사용자에게 Google Cloud에서 Gemini API 제한과 HTTP referrer 제한을 권장한다.
+- 데이터 전송: 페르소나 생성/분석 시 대화 텍스트와 캡처 이미지는 Google Gemini API로 직접 전송된다. 앱 자체 서버에는 저장하지 않는다.
+- 운영 기능: 설정 화면에서 API 키를 제외한 백업을 내보내고, 백업을 가져오고, API 키/페르소나/기록/드래프트 전체 삭제를 수행한다.
+- 배포 헤더: GitHub Pages에서는 Express 보안 헤더가 적용되지 않으므로 CSP/referrer meta를 사용한다. 헤더 수준 정책이 필요하면 커스텀 도메인 + 프록시/CDN을 고려한다.
 - 로깅: 키/대화/프롬프트를 콘솔에 남기지 않음(디버그 로그 가드).
 
 ## 9. 테스트 전략

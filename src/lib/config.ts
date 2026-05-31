@@ -1,4 +1,4 @@
-// 앱 전역 상수 — 모델/쿠키/DB 설정의 단일 출처(single source of truth).
+// 앱 전역 상수 — 모델/스토리지/DB 설정의 단일 출처(single source of truth).
 
 // 입력 방식에 따라 모델을 분기한다.
 // - 텍스트(붙여넣기): gemini-3.1-flash-lite — thinking을 끌 수 있어 ~6.5s로 가장 빠름.
@@ -27,11 +27,11 @@ export function modelSupportsThinkingConfig(model: string): boolean {
 export const TEXT_REQUEST_TIMEOUT_MS = 60_000;
 export const IMAGE_REQUEST_TIMEOUT_MS = 180_000;
 
-/** API 키를 보관하는 쿠키 이름 (사용자 요구사항: 쿠키 저장). */
-export const COOKIE_KEY_NAME = 'pm_gemini_key';
+/** API 키를 보관하는 localStorage 키. */
+export const API_KEY_STORAGE_KEY = 'pm_gemini_key';
 
-/** 쿠키 만료 (일). */
-export const COOKIE_MAX_AGE_DAYS = 365;
+/** 쿠키에 저장하던 구버전 API 키 이름. 읽으면 localStorage로 옮기고 쿠키는 삭제한다. */
+export const LEGACY_COOKIE_KEY_NAME = 'pm_gemini_key';
 
 /** IndexedDB 설정. */
 export const DB_NAME = 'persona-mirror';

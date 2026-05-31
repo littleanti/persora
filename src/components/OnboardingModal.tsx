@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { GEMINI_API_KEY_HELP_URL } from '@/lib/config';
 import { validateKey } from '@/lib/gemini';
+import { APP_LOGO_SRC } from '@/lib/assets';
 import { looksLikeKey } from '@/lib/repos/settingsRepo';
 import { useApp } from '@/lib/store';
 import { useT } from '@/lib/useI18n';
 
-export default function OnboardingModal() {
+export default function OnboardingModal({ onSkip }: { onSkip?: () => void }) {
   const apiKey = useApp((s) => s.apiKey);
   const setApiKey = useApp((s) => s.setApiKey);
   const pushToast = useApp((s) => s.pushToast);
@@ -50,7 +51,7 @@ export default function OnboardingModal() {
 
       <div className="relative max-w-md w-full bg-white border border-slate-200 rounded-2xl p-8 shadow-soft-lg animate-fade-in">
         <div className="text-center mb-8">
-          <img src="/app-logo.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover" />
+          <img src={APP_LOGO_SRC} alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover" />
           <h2 className="text-2xl font-bold text-slate-900 mb-1">{t('apikey.welcomeTitle')}</h2>
           <p className="text-sm text-slate-500 leading-relaxed">{t('apikey.welcomeDesc')}</p>
         </div>
@@ -104,6 +105,16 @@ export default function OnboardingModal() {
         >
           {saving ? t('loading.checkingKey') : t('btn.saveKey')}
         </button>
+
+        {onSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="mt-3 w-full py-2.5 rounded-xl text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+          >
+            {t('btn.later')}
+          </button>
+        )}
       </div>
     </div>
   );

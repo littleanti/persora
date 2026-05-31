@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import ApiKeyStatus from '@/components/ApiKeyStatus';
 import LanguageToggle from '@/components/LanguageToggle';
@@ -7,6 +7,8 @@ import ToastContainer from '@/components/Toast';
 import AnalyzePage from '@/routes/AnalyzePage';
 import HistoryPage from '@/routes/HistoryPage';
 import PersonaPage from '@/routes/PersonaPage';
+import SettingsPage from '@/routes/SettingsPage';
+import { APP_LOGO_SRC } from '@/lib/assets';
 import { initDB } from '@/lib/db';
 import { useApp } from '@/lib/store';
 import { useT } from '@/lib/useI18n';
@@ -42,16 +44,31 @@ const tabs = [
       </svg>
     ),
   },
+  {
+    to: '/settings',
+    labelKey: 'nav.settings',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 .9-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5.9z" />
+      </svg>
+    ),
+  },
 ];
 
 export default function App() {
   const apiKey = useApp((s) => s.apiKey);
   const pushToast = useApp((s) => s.pushToast);
   const t = useT();
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
   useEffect(() => {
     document.title = t('app.title');
   }, [t]);
+
+  useEffect(() => {
+    if (apiKey) setShowOnboarding(false);
+  }, [apiKey]);
 
   useEffect(() => {
     initDB().catch(() => pushToast(t('err.dbOpen'), 'error'));
@@ -61,7 +78,7 @@ export default function App() {
     <div className="min-h-dvh flex flex-col bg-slate-50 text-slate-900">
       <header className="px-5 py-3 flex items-center justify-between gap-4 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200">
         <div className="flex items-center gap-2 min-w-0">
-          <img src="/app-logo.png" alt="" className="h-8 w-8 rounded-lg object-cover flex-shrink-0" />
+          <img src={APP_LOGO_SRC} alt="" className="h-8 w-8 rounded-lg object-cover flex-shrink-0" />
           <span className="font-semibold tracking-tight text-slate-900 truncate">{t('app.title')}</span>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -76,6 +93,7 @@ export default function App() {
           <Route path="/personas" element={<PersonaPage />} />
           <Route path="/analyze" element={<AnalyzePage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
 
@@ -104,7 +122,7 @@ export default function App() {
         </div>
       </nav>
 
-      {!apiKey && <OnboardingModal />}
+      {!apiKey && showOnboarding && <OnboardingModal onSkip={() => setShowOnboarding(false)} />}
       <ToastContainer />
     </div>
   );

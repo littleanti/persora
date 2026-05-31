@@ -18,7 +18,7 @@ persora/
 ├── .gitignore
 ├── README.md
 ├── server/
-│   └── index.js                # Express 정적 서버 (dist/ 서빙)
+│   └── index.js                # 선택적 Express 정적 미리보기 서버 (dist/ 서빙)
 ├── src/
 │   ├── main.tsx                # Vite React 엔트리: CSS import + HashRouter + App
 │   ├── App.tsx                 # 형제 앱과 동기화된 top bar/bottom nav/route shell
@@ -31,19 +31,21 @@ persora/
 │   ├── routes/
 │   │   ├── PersonaPage.tsx
 │   │   ├── AnalyzePage.tsx
-│   │   └── HistoryPage.tsx
+│   │   ├── HistoryPage.tsx
+│   │   └── SettingsPage.tsx
 │   ├── lib/
-│   │   ├── config.ts           # 모델명/쿠키명/DB 상수
+│   │   ├── config.ts           # 모델명/localStorage 키/DB 상수
 │   │   ├── types.ts            # 공유 타입 계약
 │   │   ├── persona.ts          # 페르소나 유스케이스
 │   │   ├── analysis.ts         # 분석 유스케이스
+│   │   ├── dataManagement.ts   # 백업/가져오기/전체 삭제
 │   │   ├── gemini.ts           # @google/genai 호출 + extractJson + validateKey
 │   │   ├── prompts.ts          # 페르소나/분석 프롬프트(server.py 이식)
 │   │   ├── db.ts               # IndexedDB 연결/트랜잭션 공용 레이어
 │   │   ├── dom.ts              # $/$$ 헬퍼 + escHtml (공용)
 │   │   ├── store.ts            # Zustand: settings/toasts
 │   │   └── repos/
-│   │       ├── settingsRepo.ts # 쿠키 기반 키 관리
+│   │       ├── settingsRepo.ts # localStorage 기반 키 관리
 │   │       ├── personaRepo.ts  # personas 저장소
 │   │       └── analysisRepo.ts # analyses 저장소
 └── (제거) server.py, requirements.txt, static/, data/
@@ -68,7 +70,14 @@ persora/
 - `src/main.tsx`, `src/App.tsx`를 형제 앱 구조로 구현한다.
 - `components/OnboardingModal.tsx`, `ApiKeyStatus.tsx`, `LanguageToggle.tsx`, `Toast.tsx`는 형제 앱 패턴을 포팅한다.
 - `routes/PersonaPage.tsx`, `AnalyzePage.tsx`, `HistoryPage.tsx`는 현재 앱의 핵심 기능만 React로 구현한다.
+- `routes/SettingsPage.tsx`는 개인정보 고지, 백업 내보내기/가져오기, 전체 로컬 데이터 삭제를 구현한다.
 - 기존 vanilla DOM용 `src/components/*.ts`, `src/routes/*.ts`, `src/App.ts`, `src/main.ts`는 React 파일로 대체한다.
+
+### Wave 2.5 — 보안/운영 보강
+- API 키 저장소를 쿠키에서 localStorage로 전환하고, 기존 쿠키 값은 자동 마이그레이션 후 삭제한다.
+- 온보딩/설정/README에 Gemini API 전송, 로컬 데이터 손실 가능성, 민감정보 주의, AI 결과 면책을 명시한다.
+- GitHub Pages 하위 경로(`/persora/`) 배포를 위해 Vite base와 public asset 경로를 조정한다.
+- `index.html`에 referrer policy와 CSP meta를 적용한다.
 
 ### Wave 3 — 검증 + 수정 루프 (lead, ralph)
 - `npm install` → `npm run build`(tsc + vite). 타입/임포트 오류를 green까지 수정.
@@ -83,22 +92,23 @@ persora/
 - [x] Wave 1: 기존 도메인 레이어 React 호출 적합성 확인
 - [x] Wave 2: React components/routes/App/main 작성, vanilla DOM 완전 대체
 - [x] Wave 3: `tsc --noEmit` 0 에러, `vite build` 성공
-- [ ] 수동 점검: 온보딩 모달 → 키 저장 → 페르소나 생성 → 분석 → 기록
+- [ ] 수동 점검: 온보딩 모달 → 키 저장 → 페르소나 생성 → 분석 → 기록 → 설정
 - [x] UI 점검: 형제 앱과 동일한 상태바/하단바/토스트/모달 애니메이션
 - [ ] DevTools: 우리 서버엔 정적 요청만, LLM은 Google 직접 호출
-- [ ] README 갱신, 레거시(server.py 등) 제거
+- [x] README 갱신
+- [x] GitHub Pages workflow 추가
 - [ ] 커밋
 
 ## 4. 검증 기준 (PRD Acceptance 매핑)
 - A1 온보딩 모달: `OnboardingModal.ensureApiKey` 경로 점검
 - A2 기능 동등성: 페르소나/분석/기록 수동 시나리오
 - A3 네트워크 분리: Network 탭 확인(정적 vs Gemini)
-- A4 영속성: 새로고침 후 IndexedDB/쿠키 유지
+- A4 영속성: 새로고침 후 IndexedDB/localStorage 유지
 - A5 빌드: `npm run build` 통과 + `npm start` 서빙
 
 ## 5. 롤백/안전장치
 - 리팩토링은 새 파일 추가 중심. 레거시 제거는 **마지막 단계**에서 한 번에(되돌리기 쉬움).
-- 모델명/키쿠키명/DB명은 `src/lib/config.ts` 단일 출처 → 빠른 조정 가능.
+- 모델명/키 저장소명/DB명은 `src/lib/config.ts` 단일 출처 → 빠른 조정 가능.
 - Gemini 호출은 `gemini.ts`에 캡슐화 → SDK/REST 전환 용이.
 
 ## 6. 위험 & 대응

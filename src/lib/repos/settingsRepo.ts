@@ -1,11 +1,12 @@
-// API 키를 쿠키에 저장/읽기/삭제하는 유틸리티.
-// HttpOnly 불가(브라우저 JS가 직접 Gemini 호출에 키를 써야 함) — TRD §8 참고.
+// API 키를 localStorage에 저장/읽기/삭제하는 유틸리티.
+// 브라우저가 Gemini를 직접 호출하므로 JS에서 읽을 수 있는 저장소가 필요하다.
 
-import { COOKIE_KEY_NAME, COOKIE_MAX_AGE_DAYS } from '@/lib/config';
+import { API_KEY_STORAGE_KEY, LEGACY_COOKIE_KEY_NAME } from '@/lib/config';
 
-/** 쿠키에서 API 키를 읽는다. 없으면 null 반환. */
-export function getApiKey(): string | null {
-  const prefix = `${COOKIE_KEY_NAME}=`;
+let memoryApiKey = '';
+
+function readLegacyCookie(): string | null {
+  const prefix = `${LEGACY_COOKIE_KEY_NAME}=`;
   for (const part of document.cookie.split(';')) {
     const trimmed = part.trim();
     if (trimmed.startsWith(prefix)) {
@@ -20,25 +21,53 @@ export function getApiKey(): string | null {
   return null;
 }
 
-/** API 키를 쿠키에 저장한다. HTTPS면 Secure 플래그 추가. */
-export function setApiKey(key: string): void {
-  const maxAge = COOKIE_MAX_AGE_DAYS * 24 * 60 * 60;
-  const secure = location.protocol === 'https:' ? '; Secure' : '';
+function clearLegacyCookie(): void {
   document.cookie =
-    `${COOKIE_KEY_NAME}=${encodeURIComponent(key)}` +
-    `; max-age=${maxAge}` +
-    `; path=/` +
-    `; SameSite=Lax` +
-    secure;
-}
-
-/** 쿠키를 만료시켜 API 키를 제거한다. */
-export function clearApiKey(): void {
-  document.cookie =
-    `${COOKIE_KEY_NAME}=` +
+    `${LEGACY_COOKIE_KEY_NAME}=` +
     `; max-age=0` +
     `; path=/` +
     `; SameSite=Lax`;
+}
+
+/** localStorage에서 API 키를 읽는다. 구버전 쿠키가 있으면 localStorage로 옮기고 쿠키는 삭제한다. */
+export function getApiKey(): string | null {
+  try {
+    const stored = localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (stored) return stored;
+  } catch {
+    if (memoryApiKey) return memoryApiKey;
+  }
+
+  const legacy = readLegacyCookie();
+  if (legacy) {
+    setApiKey(legacy);
+    clearLegacyCookie();
+    return legacy;
+  }
+
+  return memoryApiKey || null;
+}
+
+/** API 키를 localStorage에 저장한다. */
+export function setApiKey(key: string): void {
+  memoryApiKey = key;
+  try {
+    localStorage.setItem(API_KEY_STORAGE_KEY, key);
+  } catch {
+    // localStorage 비활성 환경에서는 현재 세션 메모리로만 유지한다.
+  }
+  clearLegacyCookie();
+}
+
+/** 저장된 API 키를 제거한다. */
+export function clearApiKey(): void {
+  memoryApiKey = '';
+  try {
+    localStorage.removeItem(API_KEY_STORAGE_KEY);
+  } catch {
+    // 무시
+  }
+  clearLegacyCookie();
 }
 
 /** API 키가 저장되어 있으면 true. */

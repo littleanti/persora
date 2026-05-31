@@ -34,3 +34,38 @@ export function clearThreadDraft(personaId: string): void {
     // 무시
   }
 }
+
+export function listThreadDrafts(): Record<string, string> {
+  const drafts: Record<string, string> = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(PREFIX)) continue;
+      const personaId = key.slice(PREFIX.length);
+      const value = localStorage.getItem(key);
+      if (personaId && value) drafts[personaId] = value;
+    }
+  } catch {
+    // 무시
+  }
+  return drafts;
+}
+
+export function importThreadDrafts(drafts: Record<string, unknown>): void {
+  Object.entries(drafts).forEach(([personaId, value]) => {
+    if (typeof value === 'string') setThreadDraft(personaId, value);
+  });
+}
+
+export function clearAllThreadDrafts(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(PREFIX)) keys.push(key);
+    }
+    keys.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // 무시
+  }
+}
