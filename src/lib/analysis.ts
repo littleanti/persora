@@ -1,11 +1,13 @@
 // 메시지 분석 도메인 서비스.
 // server.py analyze_message / list_analyses / delete_analysis 로직 이식.
 
-import type { AnalysisRecord, CandidateReply } from '../types';
-import { uuid } from '../ui/dom';
-import { buildAnalyzePrompt } from '../lib/prompts';
-import { generate, extractJson } from '../lib/gemini';
-import * as db from '../lib/db';
+import type { AnalysisRecord, CandidateReply } from '@/lib/types';
+import { uuid } from '@/lib/id';
+import { buildAnalyzePrompt } from '@/lib/prompts';
+import { generate, extractJson } from '@/lib/gemini';
+import { getLang, t } from '@/lib/i18n';
+import { analysisRepo } from '@/lib/repos/analysisRepo';
+import { personaRepo } from '@/lib/repos/personaRepo';
 
 /**
  * 메시지를 분석한다.
@@ -13,12 +15,12 @@ import * as db from '../lib/db';
  * - LLM 응답이 'raw' 키를 가지면 server.py와 동일한 파싱 실패 fallback 객체 생성
  */
 export async function analyzeMessage(personaId: string, message: string): Promise<AnalysisRecord> {
-  const persona = await db.getPersona(personaId);
+  const persona = await personaRepo.get(personaId);
   if (!persona) {
     throw new Error('페르소나를 찾을 수 없습니다.');
   }
 
-  const prompt = buildAnalyzePrompt({ persona, message });
+  const prompt = buildAnalyzePrompt({ persona, message }, getLang());
   const text = await generate(prompt);
   const result = extractJson(text);
 
@@ -26,12 +28,12 @@ export async function analyzeMessage(personaId: string, message: string): Promis
   let candidates: CandidateReply[];
 
   if ('raw' in result) {
-    // server.py: JSON 파싱 실패 fallback
-    analysis = 'AI 응답을 파싱하는 데 문제가 발생했습니다. 원본 응답을 확인하세요.';
+    // server.py: JSON 파싱 실패 fallback (현재 UI 언어로 표시)
+    analysis = t('parse.failAnalysis');
     candidates = [
       {
-        label: '원본 응답',
-        reason: 'JSON 파싱 실패',
+        label: t('parse.failLabel'),
+        reason: t('parse.failReason'),
         response: String(result['raw'] ?? ''),
       },
     ];
@@ -52,14 +54,14 @@ export async function analyzeMessage(personaId: string, message: string): Promis
     created_at: new Date().toISOString(),
   };
 
-  await db.putAnalysis(record);
+  await analysisRepo.put(record);
   return record;
 }
 
 export function listAnalyses(): Promise<AnalysisRecord[]> {
-  return db.listAnalyses();
+  return analysisRepo.list();
 }
 
 export function removeAnalysis(id: string): Promise<void> {
-  return db.deleteAnalysis(id);
+  return analysisRepo.remove(id);
 }

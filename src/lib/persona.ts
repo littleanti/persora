@@ -7,11 +7,12 @@ import type {
   PersonaSummary,
   CreatePersonaInput,
   PersonaFields,
-} from '../types';
-import { uuid } from '../ui/dom';
-import { buildPersonaPrompt } from '../lib/prompts';
-import { generate, extractJson } from '../lib/gemini';
-import * as db from '../lib/db';
+} from '@/lib/types';
+import { uuid } from '@/lib/id';
+import { buildPersonaPrompt } from '@/lib/prompts';
+import { generate, extractJson } from '@/lib/gemini';
+import { getLang } from '@/lib/i18n';
+import { personaRepo } from '@/lib/repos/personaRepo';
 
 /**
  * 페르소나를 생성한다.
@@ -22,7 +23,7 @@ import * as db from '../lib/db';
 export async function createPersona(input: CreatePersonaInput): Promise<PersonaRecord> {
   const myName = input.my_name.trim();
 
-  const prompt = buildPersonaPrompt(input);
+  const prompt = buildPersonaPrompt(input, getLang());
   const text = await generate(prompt, input.images);
   const raw = extractJson(text);
 
@@ -48,13 +49,13 @@ export async function createPersona(input: CreatePersonaInput): Promise<PersonaR
     my_persona: myPersonaData,
   };
 
-  await db.putPersona(record);
+  await personaRepo.put(record);
   return record;
 }
 
 /** 목록 화면용 경량 요약 리스트. */
 export async function listPersonaSummaries(): Promise<PersonaSummary[]> {
-  const records = await db.listPersonas();
+  const records = await personaRepo.list();
   return records.map((p) => ({
     id: p.id,
     name: p.name,
@@ -65,9 +66,9 @@ export async function listPersonaSummaries(): Promise<PersonaSummary[]> {
 }
 
 export function getPersona(id: string): Promise<PersonaRecord | null> {
-  return db.getPersona(id);
+  return personaRepo.get(id);
 }
 
 export function removePersona(id: string): Promise<void> {
-  return db.deletePersona(id);
+  return personaRepo.remove(id);
 }

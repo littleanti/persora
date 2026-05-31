@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { fileURLToPath, URL } from 'node:url';
 
-// 기존 vanilla UI를 유지하면서 TS 모듈을 번들한다.
-// 엔트리는 루트의 index.html (Vite 기본 동작).
 export default defineConfig({
   root: '.',
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -11,7 +17,8 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5173,
+    port: 4121,
+    strictPort: true,
   },
   preview: {
     host: '0.0.0.0',

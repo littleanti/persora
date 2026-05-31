@@ -2,9 +2,10 @@
 // 키/프롬프트는 콘솔에 출력하지 않는다 (TRD §8).
 
 import { GoogleGenAI } from '@google/genai';
-import { GEMINI_MODEL } from '../config';
-import { getApiKey } from './apiKey';
-import type { KeyValidationResult, InlineImage } from '../types';
+import { GEMINI_MODEL } from '@/lib/config';
+import { getApiKey } from '@/lib/repos/settingsRepo';
+import { t } from './i18n';
+import type { KeyValidationResult, InlineImage } from '@/lib/types';
 
 /**
  * 저장된 API 키로 Gemini에 프롬프트를 전송하고 텍스트를 반환한다.
@@ -14,7 +15,7 @@ import type { KeyValidationResult, InlineImage } from '../types';
 export async function generate(prompt: string, images?: InlineImage[]): Promise<string> {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error('API 키가 설정되지 않았습니다. 키를 먼저 입력해주세요.');
+    throw new Error(t('err.keyNotSet'));
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -43,7 +44,7 @@ export async function generate(prompt: string, images?: InlineImage[]): Promise<
   } catch (err: unknown) {
     // 인증 오류(400/403)는 키 재입력을 유도하는 명확한 메시지로 변환
     if (isAuthError(err)) {
-      throw new Error('API 키가 유효하지 않습니다. 키를 다시 확인해주세요.');
+      throw new Error(t('err.invalidKey'));
     }
     throw toUserFriendlyError(err);
   }
@@ -64,12 +65,12 @@ export async function validateKey(key: string): Promise<KeyValidationResult> {
     return { ok: true };
   } catch (err: unknown) {
     if (isAuthError(err)) {
-      return { ok: false, error: 'API 키가 유효하지 않습니다. 키를 다시 확인해주세요.' };
+      return { ok: false, error: t('err.invalidKey') };
     }
     if (isNetworkError(err)) {
-      return { ok: false, error: '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.' };
+      return { ok: false, error: t('err.network') };
     }
-    return { ok: false, error: `키 검증 중 오류가 발생했습니다: ${getErrorMessage(err)}` };
+    return { ok: false, error: t('err.keyValidate', { msg: getErrorMessage(err) }) };
   }
 }
 
@@ -152,11 +153,11 @@ function getErrorMessage(err: unknown): string {
 /** 오류를 사용자 친화적인 Error로 변환. */
 function toUserFriendlyError(err: unknown): Error {
   if (isNetworkError(err)) {
-    return new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
+    return new Error(t('err.network'));
   }
   const msg = getErrorMessage(err);
   if (msg.includes('500') || msg.includes('503')) {
-    return new Error('Gemini 서비스에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    return new Error(t('err.serviceTemp'));
   }
-  return new Error(`AI 응답 중 오류가 발생했습니다: ${msg}`);
+  return new Error(t('err.aiGeneric', { msg }));
 }

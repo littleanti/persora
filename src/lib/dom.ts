@@ -37,8 +37,3 @@ export function formatDate(iso: string): string {
 export function getInitial(name: string): string {
   return name ? name[0].toUpperCase() : '?';
 }
-
-/** uuid v4 (브라우저 crypto). */
-export function uuid(): string {
-  return crypto.randomUUID();
-}

@@ -1,7 +1,7 @@
 // API 키를 쿠키에 저장/읽기/삭제하는 유틸리티.
 // HttpOnly 불가(브라우저 JS가 직접 Gemini 호출에 키를 써야 함) — TRD §8 참고.
 
-import { COOKIE_KEY_NAME, COOKIE_MAX_AGE_DAYS } from '../config';
+import { COOKIE_KEY_NAME, COOKIE_MAX_AGE_DAYS } from '@/lib/config';
 
 /** 쿠키에서 API 키를 읽는다. 없으면 null 반환. */
 export function getApiKey(): string | null {
@@ -54,3 +54,11 @@ export function looksLikeKey(key: string): boolean {
   const trimmed = key.trim();
   return trimmed.length >= 20 && !/\s/.test(trimmed);
 }
+
+export const settingsRepo = {
+  getApiKey,
+  setApiKey,
+  clearApiKey,
+  hasApiKey,
+  looksLikeKey,
+};

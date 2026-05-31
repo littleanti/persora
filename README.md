@@ -29,13 +29,13 @@
 
 | 구분 | 기술 |
 |------|------|
-| 프론트엔드 | Vanilla TypeScript + Vite (모바일 웹 SPA) |
+| 프론트엔드 | React 18 + TypeScript + Vite + Tailwind CSS (모바일 웹 SPA) |
 | AI 엔진 | Google Gemini (`@google/genai`, 브라우저 직접 호출) |
 | 개인 데이터 저장 | IndexedDB (브라우저 로컬) |
 | API 키 저장 | Cookie (브라우저 로컬) |
 | 서버 | Node + Express (정적 파일 서빙 전용) |
 
-> 자세한 설계는 [`docs/PRD.md`](docs/PRD.md), [`docs/TRD.md`](docs/TRD.md), [`docs/PLAN.md`](docs/PLAN.md) 참고.
+> 자세한 설계는 [`docs/WIREFRAMES.md`](docs/WIREFRAMES.md), [`docs/PRD.md`](docs/PRD.md), [`docs/TRD.md`](docs/TRD.md), [`docs/PLAN.md`](docs/PLAN.md) 참고.
 
 ---
 
@@ -54,11 +54,12 @@ npm install
 # 2. 프로덕션 빌드 (dist/ 생성)
 npm run build
 
-# 3. 정적 서버 시작 (Windows: start.bat 더블클릭도 가능)
+# 3. 정적 서버 시작
 npm start
 ```
 
-> 개발 모드(HMR): `npm run dev` → http://localhost:5173
+> 개발 모드(HMR): `npm run dev` → http://localhost:4121  
+> 이미 4121 포트가 사용 중이면 `npm run dev -- --port 5560 --strictPort`처럼 다른 포트를 지정하세요.
 
 ### 접속 방법
 
@@ -78,17 +79,17 @@ npm start
 
 ```
 persona-mirror/
-├── docs/                       # PRD / TRD / PLAN
-├── index.html                  # Vite 엔트리 (UI 마크업)
+├── docs/                       # WIREFRAMES / PRD / TRD / PLAN
+├── index.html                  # Vite React 엔트리 (#root)
 ├── server/index.js             # Express 정적 서버 (dist/ 서빙)
 ├── src/
-│   ├── main.ts                 # 부트스트랩
-│   ├── config.ts               # 모델/쿠키/DB 상수
-│   ├── types.ts                # 공유 타입
-│   ├── styles/main.css         # UI 스타일
-│   ├── lib/                    # apiKey · gemini · prompts · db(IndexedDB)
-│   ├── services/               # personaService · analysisService
-│   └── ui/                     # 뷰/모달/토스트/네비게이션
+│   ├── main.tsx                # React 엔트리 + HashRouter
+│   ├── App.tsx                 # 형제 앱과 동기화된 상태바/하단바/라우트 셸
+│   ├── index.css               # Tailwind base + 공용 유틸
+│   ├── components/             # 상태 버튼 · 온보딩 모달 · 토스트 · 언어 토글
+│   ├── routes/                 # PersonaPage · AnalyzePage · HistoryPage (React)
+│   └── lib/                    # 도메인 로직 · Gemini · i18n · 타입 · repos
+│       └── repos/              # IndexedDB / 쿠키 저장소 경계
 ├── package.json
 ├── tsconfig.json
 └── vite.config.ts

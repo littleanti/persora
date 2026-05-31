@@ -1,6 +1,6 @@
-# PLAN — Persona Mirror 리팩토링 실행 계획
+# PLAN — Persona Mirror React UI/UX 동기화 실행 계획
 
-> 문서 버전: 1.0 · 작성일: 2026-05-30 · 기준: PRD 1.0 / TRD 1.0
+> 문서 버전: 1.1 · 작성일: 2026-05-31 · 기준: PRD 1.1 / TRD 1.1 / WIREFRAMES 1.0
 
 ## 1. 목표 디렉터리 구조
 
@@ -9,82 +9,88 @@ persona-mirror/
 ├── docs/
 │   ├── PRD.md
 │   ├── TRD.md
+│   ├── WIREFRAMES.md
 │   └── PLAN.md
-├── index.html                  # Vite 엔트리 (기존 마크업 보존 + main.ts/main.css 링크)
+├── index.html                  # Vite React 엔트리 (#root)
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
 ├── .gitignore
 ├── README.md
-├── start.bat                   # 설치→빌드→start
 ├── server/
 │   └── index.js                # Express 정적 서버 (dist/ 서빙)
 ├── src/
-│   ├── main.ts                 # 부트스트랩: DB init, 온보딩 게이트, 뷰 초기화
-│   ├── config.ts               # 모델명/쿠키명/DB 상수
-│   ├── types.ts                # 공유 타입 계약
-│   ├── styles/
-│   │   └── main.css            # index.html에서 추출한 CSS(동일 내용)
+│   ├── main.tsx                # Vite React 엔트리: CSS import + HashRouter + App
+│   ├── App.tsx                 # 형제 앱과 동기화된 top bar/bottom nav/route shell
+│   ├── index.css               # Tailwind base + 형제 앱 공용 유틸
+│   ├── components/
+│   │   ├── ApiKeyStatus.tsx
+│   │   ├── LanguageToggle.tsx
+│   │   ├── OnboardingModal.tsx
+│   │   └── Toast.tsx
+│   ├── routes/
+│   │   ├── PersonaPage.tsx
+│   │   ├── AnalyzePage.tsx
+│   │   └── HistoryPage.tsx
 │   ├── lib/
-│   │   ├── apiKey.ts           # 쿠키 기반 키 관리
+│   │   ├── config.ts           # 모델명/쿠키명/DB 상수
+│   │   ├── types.ts            # 공유 타입 계약
+│   │   ├── persona.ts          # 페르소나 유스케이스
+│   │   ├── analysis.ts         # 분석 유스케이스
 │   │   ├── gemini.ts           # @google/genai 호출 + extractJson + validateKey
 │   │   ├── prompts.ts          # 페르소나/분석 프롬프트(server.py 이식)
-│   │   └── db.ts               # IndexedDB 래퍼(personas/analyses)
-│   ├── services/
-│   │   ├── personaService.ts   # 페르소나 유스케이스
-│   │   └── analysisService.ts  # 분석 유스케이스
-│   └── ui/
-│       ├── dom.ts              # $/$$ 헬퍼 + escHtml (공용)
-│       ├── toast.ts
-│       ├── loading.ts
-│       ├── nav.ts
-│       ├── apiKeyModal.ts
-│       ├── personaView.ts
-│       ├── analyzeView.ts
-│       └── historyView.ts
+│   │   ├── db.ts               # IndexedDB 연결/트랜잭션 공용 레이어
+│   │   ├── dom.ts              # $/$$ 헬퍼 + escHtml (공용)
+│   │   ├── store.ts            # Zustand: settings/toasts
+│   │   └── repos/
+│   │       ├── settingsRepo.ts # 쿠키 기반 키 관리
+│   │       ├── personaRepo.ts  # personas 저장소
+│   │       └── analysisRepo.ts # analyses 저장소
 └── (제거) server.py, requirements.txt, static/, data/
 ```
 
-> 마이그레이션 시 기존 `static/index.html`의 마크업/CSS는 보존 대상이므로, 새 `index.html`+`src/styles/main.css`로 정확히 옮긴다. 기존 Python 파일은 마지막 정리 단계에서 제거(또는 `legacy/`로 보관 후 커밋 메시지에 명시).
+> 마이그레이션 기준은 기존 vanilla 마크업 보존이 아니라 `D:\yoon\codes\say-awsomely`의 React/Tailwind UI 셸이다. Persona Mirror 고유 기능만 별도 React 화면으로 구현한다.
 
 ## 2. 작업 분해 & 의존성 (waves)
 
-### Wave 0 — 기반 + 계약 (lead, 선행 필수)
-- package.json / tsconfig.json / vite.config.ts / .gitignore
-- server/index.js (Express 정적)
-- index.html (마크업 이식 + `<link>`/`<script type=module>`)
-- src/styles/main.css (CSS 추출)
-- src/config.ts, src/types.ts (계약), src/ui/dom.ts (escHtml/$ 헬퍼)
-- **출구 조건**: 모든 후속 작업이 의존하는 타입/상수/HTML/CSS 골격 존재.
+### Wave 0 — 문서 + React 기반 (선행 필수)
+- `docs/WIREFRAMES.md` 작성.
+- PRD/TRD/PLAN을 React + 형제 앱 UI/UX 동기화 기준으로 갱신.
+- `package.json`, `vite.config.ts`, `tsconfig.json`, `tailwind.config.js`, `postcss.config.js`를 React/Tailwind 기준으로 갱신.
+- `index.html`은 `#root`만 두는 Vite React 엔트리로 축소한다.
+- **출구 조건**: React 빌드 파이프라인과 문서 기준이 일치한다.
 
-### Wave 1 — 독립 라이브러리 (병렬, 2 executor)
-- **T-data**: `src/lib/db.ts` (IndexedDB). 의존: types/config.
-- **T-ai**: `src/lib/apiKey.ts`, `src/lib/gemini.ts`, `src/lib/prompts.ts`. 의존: types/config.
-- 두 작업은 서로 독립 → 동시 실행. 계약(3.x)을 엄격히 준수.
+### Wave 1 — 도메인 레이어 보존
+- 기존 `src/lib/db.ts`, `src/lib/repos/*Repo.ts`, `src/lib/gemini.ts`, `src/lib/prompts.ts`, `src/lib/persona.ts`, `src/lib/analysis.ts`는 가능한 한 유지한다.
+- React UI가 호출하기 쉽게 타입/반환값만 필요한 범위에서 보완한다.
 
-### Wave 2 — 통합(서비스/UI/부트스트랩) (1 executor)
-- `src/services/*`, `src/ui/*`(dom.ts 제외), `src/main.ts`.
-- Wave 1 실제 파일을 import하여 작성(인터페이스 불일치 최소화).
-- 기존 index.html의 모든 동작(탭 전환, 시트 열기/닫기, 생성/분석/기록/복사) 재현.
+### Wave 2 — React UI 구현
+- `src/main.tsx`, `src/App.tsx`를 형제 앱 구조로 구현한다.
+- `components/OnboardingModal.tsx`, `ApiKeyStatus.tsx`, `LanguageToggle.tsx`, `Toast.tsx`는 형제 앱 패턴을 포팅한다.
+- `routes/PersonaPage.tsx`, `AnalyzePage.tsx`, `HistoryPage.tsx`는 현재 앱의 핵심 기능만 React로 구현한다.
+- 기존 vanilla DOM용 `src/components/*.ts`, `src/routes/*.ts`, `src/App.ts`, `src/main.ts`는 React 파일로 대체한다.
 
 ### Wave 3 — 검증 + 수정 루프 (lead, ralph)
 - `npm install` → `npm run build`(tsc + vite). 타입/임포트 오류를 green까지 수정.
-- README/start.bat 갱신, 레거시 파일 정리.
+- Vite dev server를 띄우고 브라우저에서 상단/하단바, 모달, 기본 라우팅을 시각 검증한다.
+- README 갱신, 레거시 파일 정리.
 - code-review/verifier 패스(별도 레인).
 
 ## 3. 단계별 체크리스트
 
-- [ ] Wave 0: 기반 파일 생성, `npm install` 가능 상태
-- [ ] Wave 1: db.ts, apiKey/gemini/prompts.ts 작성 (계약 준수)
-- [ ] Wave 2: 서비스/UI/main 작성, 인라인 스크립트 완전 대체
-- [ ] Wave 3: `tsc --noEmit` 0 에러, `vite build` 성공
+- [x] Wave 0a: `docs/WIREFRAMES.md` 작성 및 PRD/TRD/PLAN 갱신
+- [x] Wave 0b: React/Tailwind 의존성 및 빌드 설정 갱신
+- [x] Wave 1: 기존 도메인 레이어 React 호출 적합성 확인
+- [x] Wave 2: React components/routes/App/main 작성, vanilla DOM 완전 대체
+- [x] Wave 3: `tsc --noEmit` 0 에러, `vite build` 성공
 - [ ] 수동 점검: 온보딩 모달 → 키 저장 → 페르소나 생성 → 분석 → 기록
+- [x] UI 점검: 형제 앱과 동일한 상태바/하단바/토스트/모달 애니메이션
 - [ ] DevTools: 우리 서버엔 정적 요청만, LLM은 Google 직접 호출
-- [ ] README/start.bat 갱신, 레거시(server.py 등) 제거
+- [ ] README 갱신, 레거시(server.py 등) 제거
 - [ ] 커밋
 
 ## 4. 검증 기준 (PRD Acceptance 매핑)
-- A1 온보딩 모달: `apiKeyModal.ensureApiKey` 경로 점검
+- A1 온보딩 모달: `OnboardingModal.ensureApiKey` 경로 점검
 - A2 기능 동등성: 페르소나/분석/기록 수동 시나리오
 - A3 네트워크 분리: Network 탭 확인(정적 vs Gemini)
 - A4 영속성: 새로고침 후 IndexedDB/쿠키 유지
@@ -92,7 +98,7 @@ persona-mirror/
 
 ## 5. 롤백/안전장치
 - 리팩토링은 새 파일 추가 중심. 레거시 제거는 **마지막 단계**에서 한 번에(되돌리기 쉬움).
-- 모델명/키쿠키명/DB명은 `config.ts` 단일 출처 → 빠른 조정 가능.
+- 모델명/키쿠키명/DB명은 `src/lib/config.ts` 단일 출처 → 빠른 조정 가능.
 - Gemini 호출은 `gemini.ts`에 캡슐화 → SDK/REST 전환 용이.
 
 ## 6. 위험 & 대응

@@ -1,7 +1,19 @@
 // server.py의 프롬프트를 TypeScript로 이식.
 // 한국어 프롬프트 텍스트와 JSON 형식 지시는 원본과 동일하게 유지.
 
-import type { PersonaRecord, CreatePersonaInput } from '../types';
+import type { PersonaRecord, CreatePersonaInput } from '@/lib/types';
+import type { Lang } from './i18n';
+
+/**
+ * 출력 언어 지시문. 프롬프트 본문은 한국어지만 영어 선택 시 값은 영어로 생성하게 한다.
+ * (JSON 키는 그대로 유지 — 파싱 계약 보존)
+ */
+function outputLangDirective(lang: Lang): string {
+  if (lang === 'en') {
+    return `\n\n[Output language] Write EVERY value in the JSON in natural English, even though these instructions are written in Korean and the conversation itself may be in Korean. Do NOT translate or change the JSON keys — keep them exactly as specified.`;
+  }
+  return '';
+}
 
 /**
  * LLM에게 요청할 페르소나 JSON 필드 스펙.
@@ -25,10 +37,11 @@ export const PERSONA_FIELDS: string =
  * my_name 유무에 따라 단일(상대방만) / 이중(other_persona + my_persona) 형식으로 분기.
  * server.py create_persona 라우트와 동일한 로직.
  */
-export function buildPersonaPrompt(input: CreatePersonaInput): string {
+export function buildPersonaPrompt(input: CreatePersonaInput, lang: Lang = 'ko'): string {
   const { name, conversation } = input;
   const myName = input.my_name.trim();
   const useImages = !!input.images && input.images.length > 0;
+  const langDirective = outputLangDirective(lang);
 
   const personaInstruction = `페르소나 분석 시 다음 사항을 반드시 지켜주세요:
 - vocabulary_examples: 대화에서 실제로 등장한 단어/표현을 그대로 인용하세요. 추상적 설명 금지.
@@ -68,7 +81,7 @@ ${PERSONA_FIELDS}
 other_persona는 "${name}"의 페르소나이고, my_persona는 "${myName}"의 페르소나입니다.
 각 페르소나는 이 두 사람의 관계 맥락에서 분석되어야 합니다.
 
-★ my_persona("${myName}")의 sentence_style·vocabulary_examples·texting_habits에는 "${myName}"이 실제로 보낸 문장과 표현을 그대로 인용하세요. 이 정보는 나중에 "${myName}"의 말투를 똑같이 재현해 답장을 쓰는 데 쓰입니다.`;
+★ my_persona("${myName}")의 sentence_style·vocabulary_examples·texting_habits에는 "${myName}"이 실제로 보낸 문장과 표현을 그대로 인용하세요. 이 정보는 나중에 "${myName}"의 말투를 똑같이 재현해 답장을 쓰는 데 쓰입니다.${langDirective}`;
   } else {
     return `다음은 "${name}"과의 실제 대화 기록입니다. 이 대화를 깊이 분석하여 ${name}의 페르소나와 말투를 만들어주세요.
 
@@ -79,7 +92,7 @@ ${sourceBlock}
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트, 설명, 마크다운은 절대 포함하지 마세요:
 {
 ${PERSONA_FIELDS}
-}`;
+}${langDirective}`;
   }
 }
 
@@ -128,10 +141,11 @@ function speechSummary(p: Record<string, unknown>, personName: string): string {
 export function buildAnalyzePrompt(input: {
   persona: PersonaRecord;
   message: string;
-}): string {
+}, lang: Lang = 'ko'): string {
   const { persona: record, message } = input;
   const { name, my_name, persona, my_persona } = record;
   const myName = my_name.trim();
+  const langDirective = outputLangDirective(lang);
 
   const personaStr = JSON.stringify(persona, null, 2);
   const receiverLabel = myName || '상대방';
@@ -227,5 +241,5 @@ ${mySpeechInstruction}
       "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 가볍게(유머·온기) 분위기 전환, ${responseDesc}"
     }
   ]
-}`;
+}${langDirective}`;
 }
