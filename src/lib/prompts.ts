@@ -135,20 +135,43 @@ function speechSummary(p: Record<string, unknown>, personName: string): string {
 }
 
 /**
- * 메시지 분석 프롬프트 빌더.
- * server.py analyze_message 라우트와 동일한 로직.
+ * 답장 의도 키 → 프롬프트 디렉티브 문장.
+ * 빈 문자열이면 null(=의도 미지정, 공감 3축 기본). 알 수 없는 키는 자유 입력으로 간주해 그대로 사용.
+ */
+function intentDirective(intent: string): string | null {
+  const trimmed = intent.trim();
+  if (!trimmed) return null;
+  const presets: Record<string, string> = {
+    comfort: '상대의 감정을 깊이 위로하고 공감하기',
+    solve: '공감한 뒤 함께 해결책이나 다음 행동을 제안하기',
+    lighten: '공감한 뒤 분위기를 가볍게(유머·온기) 풀어주기',
+    decline: '상대의 감정을 존중하면서 정중하게 거절·사양하기',
+    boundary: '관계를 해치지 않으면서 분명하게 선을 긋고 경계를 표현하기',
+    persuade: '공감을 바탕으로 내 입장을 설득하거나 제안하기',
+  };
+  return presets[trimmed] ?? trimmed;
+}
+
+/**
+ * 답장 생성 프롬프트 빌더.
+ * 정적 페르소나(장기) + 최근 대화 스레드(단기 맥락) + 답장할 마지막 메시지(타겟) + 답장 의도를 받아
+ * 심리 분석 + 답장 후보 3개를 요청한다. 의도 미지정 시 기존 공감 3축을 그대로 유지(무회귀).
  */
 export function buildAnalyzePrompt(input: {
   persona: PersonaRecord;
-  message: string;
+  thread: string;
+  targetMessage: string;
+  intent: string;
 }, lang: Lang = 'ko'): string {
-  const { persona: record, message } = input;
+  const { persona: record, thread, targetMessage, intent } = input;
   const { name, my_name, persona, my_persona } = record;
   const myName = my_name.trim();
   const langDirective = outputLangDirective(lang);
+  const directive = intentDirective(intent);
 
   const personaStr = JSON.stringify(persona, null, 2);
   const receiverLabel = myName || '상대방';
+  const message = targetMessage; // 답장 대상 메시지
 
   const otherSpeech = speechSummary(persona as Record<string, unknown>, name);
 
@@ -197,35 +220,38 @@ ${mySpeech}
 2. 모든 답변은 그 감정을 먼저 알아주고 받아들이는 말로 시작하세요. 조언·해결·화제 전환은 반드시 그 다음입니다.
 3. 다음은 절대 금지: 섣부른 조언/훈수, 감정 축소("별거 아냐", 성급한 "괜찮아질 거야"), 영혼 없는 진부한 위로, 질문만 줄줄이 늘어놓는 심문, ${name}의 감정을 평가·판단하기.`;
 
-  return `당신은 지금 "${name}"의 내면 심리를 완벽히 이해하는 분석가입니다.
+  // 최근 대화 흐름 블록 (단기 맥락). 비어 있으면 생략하고 타겟 메시지만 사용.
+  const threadBlock = thread.trim()
+    ? `\n[최근 대화 흐름] (시간 순서, 맨 아래가 최신):\n${thread.trim()}\n`
+    : '';
 
-${name}의 성격 및 소통 방식 분석:
-${personaStr}
-${otherSpeechBlock}
-${myPersonaSection}
-${name}이(가) ${receiverLabel}에게 다음 메시지를 보냈습니다:
-"${message}"
-
-${name}의 성격, 소통 방식, 말투, 감정 표현 방식, 관계 패턴을 깊이 고려하여 분석하세요:
-- ${name}이 지금 느끼는 핵심 감정은 무엇이고, 그 밑에 깔린 진짜 욕구는 무엇인가?
-- ${name}이 이 메시지를 보낸 진짜 심리적 이유는 무엇인가?
-- ${name}은 ${receiverLabel}으로부터 어떤 종류의 답변을 듣고 싶어하는가?
-${speechToneQuestion}
-${myPersonaQuestion}
-
-${empathyGuide}
-
-- 위 공감을 기본으로 깔되, 공감 "이후"의 방향만 다르게 한 답변 후보 3가지를 만드세요:
+  // 후보 생성 지침 + JSON 스켈레톤 — 의도 유무로 분기.
+  // 의도 미지정: 기존 공감 3축 그대로(무회귀). 의도 지정: 그 목표를 향한 3가지 다른 방식.
+  const candidateGuide = directive
+    ? `- 사용자의 답장 목표: ${directive}.
+- 공감을 먼저 깔되(감정·욕구 인정이 항상 먼저), 위 목표를 향해 접근 방식·톤·강도가 서로 다른 답변 후보 3가지를 만드세요. 목표에서 벗어나지 마세요.`
+    : `- 위 공감을 기본으로 깔되, 공감 "이후"의 방향만 다르게 한 답변 후보 3가지를 만드세요:
   (1) 감정에 더 깊이 머무르며 수용·지지하는 답변
   (2) 공감한 뒤 함께 해결책이나 다음 행동을 제안하는 답변
-  (3) 공감한 뒤 분위기를 가볍게(유머·온기) 풀어주는 답변
-${mySpeechInstruction}
+  (3) 공감한 뒤 분위기를 가볍게(유머·온기) 풀어주는 답변`;
 
-반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트나 마크다운은 절대 포함하지 마세요:
-{
-  "analysis": "${name}이 지금 느끼는 핵심 감정과 그 밑의 진짜 욕구, 그리고 이 메시지를 보낸 심리적 배경·기대하는 반응 (2-3문장)",
-  "candidates": [
+  const candidatesJson = directive
+    ? `    {
+      "label": "부드럽고 완곡하게",
+      "reason": "${name}이 이 답변을 원하는 구체적인 이유 (어떤 감정/욕구를 채워주는지)",
+      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 «${directive}»를 부드럽고 완곡하게, ${responseDesc}"
+    },
     {
+      "label": "솔직하고 분명하게",
+      "reason": "${name}이 이 답변을 원하는 구체적인 이유 (어떤 감정/욕구를 채워주는지)",
+      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 «${directive}»를 솔직하고 분명하게, ${responseDesc}"
+    },
+    {
+      "label": "따뜻한 유머를 곁들여",
+      "reason": "${name}이 이 답변을 원하는 구체적인 이유 (어떤 감정/욕구를 채워주는지)",
+      "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 «${directive}»를 따뜻한 유머를 곁들여, ${responseDesc}"
+    }`
+    : `    {
       "label": "깊은 공감·수용형",
       "reason": "${name}이 이 답변을 원하는 구체적인 이유 (어떤 감정/욕구를 채워주는지)",
       "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 깊이 수용·지지, ${responseDesc}"
@@ -239,7 +265,34 @@ ${mySpeechInstruction}
       "label": "공감 + 분위기 전환형",
       "reason": "${name}이 이 답변을 원하는 구체적인 이유 (어떤 감정/욕구를 채워주는지)",
       "response": "${receiverLabel}이(가) ${name}에게 보낼 수 있는 실제 답변 — 감정을 먼저 알아준 뒤 가볍게(유머·온기) 분위기 전환, ${responseDesc}"
-    }
+    }`;
+
+  return `당신은 지금 "${name}"의 내면 심리를 완벽히 이해하는 분석가입니다.
+
+${name}의 성격 및 소통 방식 분석:
+${personaStr}
+${otherSpeechBlock}
+${myPersonaSection}${threadBlock}
+위 대화에서 ${name}이(가) ${receiverLabel}에게 보낸 마지막 메시지(= 답장할 대상)는 다음과 같습니다:
+"${message}"
+
+${name}의 성격·소통 방식·말투·감정 표현·관계 패턴과 위 최근 대화 흐름을 함께 고려하여 분석하세요:
+- ${name}이 지금 느끼는 핵심 감정은 무엇이고, 그 밑에 깔린 진짜 욕구는 무엇인가?
+- 최근 대화 흐름 속에서 ${name}이 이 마지막 메시지를 보낸 진짜 심리적 이유는 무엇인가?
+- ${name}은 ${receiverLabel}으로부터 어떤 종류의 답변을 듣고 싶어하는가?
+${speechToneQuestion}
+${myPersonaQuestion}
+
+${empathyGuide}
+
+${candidateGuide}
+${mySpeechInstruction}
+
+반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트나 마크다운은 절대 포함하지 마세요:
+{
+  "analysis": "${name}이 지금 느끼는 핵심 감정과 그 밑의 진짜 욕구, 최근 대화 흐름 속 이 메시지의 심리적 배경·기대하는 반응 (2-3문장)",
+  "candidates": [
+${candidatesJson}
   ]
 }${langDirective}`;
 }

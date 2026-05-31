@@ -40,10 +40,40 @@ export interface AnalysisRecord {
   id: string;
   persona_id: string;
   persona_name: string;
-  message: string;
+  message: string; // 답장 대상(타겟) 메시지. 구 스키마 호환을 위해 유지.
   analysis: string;
   candidates: CandidateReply[];
   created_at: string;
+  // ── Phase 1 추가(선택 필드, 구 레코드 무회귀) ──
+  thread?: string; // 붙여넣은 최근 대화 원문
+  target_message?: string; // 자동 검출된 상대의 마지막 메시지(없으면 message로 폴백)
+  intent?: string; // 선택/입력된 답장 의도 키 또는 자유 텍스트('' = 공감 기본)
+}
+
+/** 답장 의도 프리셋 키. 빈 문자열('')은 "의도 미지정 = 공감 기본". */
+export type ReplyIntentKey =
+  | 'comfort'
+  | 'solve'
+  | 'lighten'
+  | 'decline'
+  | 'boundary'
+  | 'persuade';
+
+/** 답장 의도 프리셋 목록(키 + i18n 라벨 키). UI 칩/프롬프트 디렉티브 공용 단일 출처. */
+export const REPLY_INTENTS: ReadonlyArray<{ key: ReplyIntentKey; labelKey: string }> = [
+  { key: 'comfort', labelKey: 'intent.comfort' },
+  { key: 'solve', labelKey: 'intent.solve' },
+  { key: 'lighten', labelKey: 'intent.lighten' },
+  { key: 'decline', labelKey: 'intent.decline' },
+  { key: 'boundary', labelKey: 'intent.boundary' },
+  { key: 'persuade', labelKey: 'intent.persuade' },
+];
+
+/** 분석(답장 생성) 입력. thread를 그대로 받고 의도는 자유 문자열('' 허용). */
+export interface AnalyzeReplyInput {
+  personaId: string;
+  thread: string;
+  intent: string;
 }
 
 /** 페르소나 목록 화면용 경량 요약. */

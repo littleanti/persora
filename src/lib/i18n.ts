@@ -49,6 +49,23 @@ const MESSAGES: Record<Lang, Dict> = {
     'btn.copy': '복사하기',
     'btn.copied': '✓ 복사됨',
 
+    // 분석 — 최근 대화 스레드 + 의도
+    'analyze.threadLabel': '최근 대화 붙여넣기',
+    'analyze.threadHint': '상대와 주고받은 최근 대화를 그대로 붙여넣으세요. 맨 아래(최신)의 상대 메시지에 답장해요.',
+    'analyze.threadPlaceholder': '[상대] 오늘 뭐해?\n[나] 집에 있어\n[상대] 그럼 이따 볼래?',
+    'analyze.target': '이 메시지에 답장',
+    'analyze.targetEmpty': '대화를 붙여넣으면 답장할 마지막 메시지를 자동으로 잡아드려요.',
+    'analyze.intentLabel': '답장 의도',
+    'intent.none': '기본(공감)',
+    'intent.comfort': '위로·공감',
+    'intent.solve': '함께 해결',
+    'intent.lighten': '가볍게 전환',
+    'intent.decline': '정중한 거절',
+    'intent.boundary': '선 긋기',
+    'intent.persuade': '설득·제안',
+    'intent.custom': '직접 입력',
+    'intent.customPlaceholder': '원하는 답장 방향을 적어주세요 (예: 사과하고 싶어)',
+
     // 기록 페이지
     'history.empty': '아직 분석 기록이 없어요',
     'history.reason': '원하는 이유:',
@@ -212,6 +229,23 @@ const MESSAGES: Record<Lang, Dict> = {
     'analyze.candidatesTitle': '3 suggested replies',
     'btn.copy': 'Copy',
     'btn.copied': '✓ Copied',
+
+    // Analyze — recent conversation thread + intent
+    'analyze.threadLabel': 'Paste recent conversation',
+    'analyze.threadHint': 'Paste your recent back-and-forth. We reply to the other person’s latest message at the bottom.',
+    'analyze.threadPlaceholder': '[Them] what are you up to?\n[Me] just home\n[Them] wanna meet later?',
+    'analyze.target': 'Replying to',
+    'analyze.targetEmpty': 'Paste a conversation and we’ll pick the last message to reply to.',
+    'analyze.intentLabel': 'Reply intent',
+    'intent.none': 'Default (empathy)',
+    'intent.comfort': 'Comfort',
+    'intent.solve': 'Solve together',
+    'intent.lighten': 'Lighten mood',
+    'intent.decline': 'Politely decline',
+    'intent.boundary': 'Set boundary',
+    'intent.persuade': 'Persuade',
+    'intent.custom': 'Custom',
+    'intent.customPlaceholder': 'Describe the reply direction (e.g. I want to apologize)',
 
     // History page
     'history.empty': 'No analysis history yet',
