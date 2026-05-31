@@ -41,7 +41,7 @@ export default function ApiKeyStatus() {
     return (
       <button className="flex items-center gap-1.5 text-xs text-slate-500" title={t('apikey.title')}>
         <span className="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0" />
-        <span className="hidden sm:inline font-medium">{t('status.noKey')}</span>
+        <span className="font-medium">{t('status.noKey')}</span>
       </button>
     );
   }
@@ -92,7 +92,7 @@ export default function ApiKeyStatus() {
       title={t('apikey.title')}
     >
       <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
-      <span className="hidden sm:inline group-hover:text-slate-700 transition-colors font-medium">{t('status.ready')}</span>
+      <span className="group-hover:text-slate-700 transition-colors font-medium whitespace-nowrap">{t('status.ready')}</span>
     </button>
   );
 }
