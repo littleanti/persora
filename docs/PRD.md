@@ -1,10 +1,10 @@
-# PRD — Persona Mirror (Client-First React 재설계)
+# PRD — Persora (Client-First React 재설계)
 
 > 문서 버전: 1.1 · 작성일: 2026-05-31 · 상태: React UI/UX 동기화 반영
 
 ## 1. 배경 및 목적
 
-Persona Mirror는 대화 기록으로 상대방의 페르소나·말투를 분석하고, 받은 메시지에서 **"상대방이 원하는 답변"** 을 추론해주는 모바일 웹 앱이다.
+Persora는 대화 기록으로 상대방의 페르소나·말투를 분석하고, 받은 메시지에서 **"상대방이 원하는 답변"** 을 추론해주는 모바일 웹 앱이다.
 
 기존 버전은 **Python(FastAPI) + 로컬 Ollama + 서버 디스크 JSON 저장** 구조였다. 이번 재설계의 목적은 다음과 같다.
 

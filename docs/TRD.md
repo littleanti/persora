@@ -1,4 +1,4 @@
-# TRD — Persona Mirror (Client-First React 아키텍처)
+# TRD — Persora (Client-First React 아키텍처)
 
 > 문서 버전: 1.1 · 작성일: 2026-05-31 · 기준: PRD 1.1
 

@@ -14,7 +14,7 @@ type Dict = Record<string, string>;
 const MESSAGES: Record<Lang, Dict> = {
   ko: {
     // 헤더 / 상태
-    'app.title': '페르소나 분석기',
+    'app.title': 'Persora',
     'status.checking': '연결 확인 중',
     'status.ready': 'Gemini 준비됨',
     'status.noKey': 'API 키 미등록',
@@ -102,7 +102,7 @@ const MESSAGES: Record<Lang, Dict> = {
 
     // API 키 시트
     'apikey.title': 'Gemini API 키 설정',
-    'apikey.welcomeTitle': '페르소나 분석기에 오신 걸 환영합니다',
+    'apikey.welcomeTitle': 'Persora에 오신 걸 환영합니다',
     'apikey.welcomeDesc': '분석은 Google AI Studio (Gemini)를 사용합니다. 본인 API 키를 입력해 주세요.',
     'apikey.intro':
       '이 앱은 <strong>당신의 Google AI Studio(Gemini) API 키</strong>로 동작합니다. 키와 모든 데이터는 <strong>이 브라우저에만</strong> 저장되며 서버로 전송되지 않습니다.',
@@ -171,7 +171,7 @@ const MESSAGES: Record<Lang, Dict> = {
   },
   en: {
     // Header / status
-    'app.title': 'Persona Analyzer',
+    'app.title': 'Persora',
     'status.checking': 'Checking…',
     'status.ready': 'Gemini ready',
     'status.noKey': 'No API key',
@@ -259,7 +259,7 @@ const MESSAGES: Record<Lang, Dict> = {
 
     // API key sheet
     'apikey.title': 'Gemini API key',
-    'apikey.welcomeTitle': 'Welcome to Persona Analyzer',
+    'apikey.welcomeTitle': 'Welcome to Persora',
     'apikey.welcomeDesc': 'Analysis uses Google AI Studio (Gemini). Enter your own API key to begin.',
     'apikey.intro':
       'This app runs on <strong>your own Google AI Studio (Gemini) API key</strong>. Your key and all data are stored <strong>only in this browser</strong> and never sent to any server.',

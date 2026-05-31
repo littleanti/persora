@@ -36,6 +36,6 @@ app.get('*', (_req, res) => {
 });
 
 app.listen(PORT, HOST, () => {
-  console.log(`\n  Persona Mirror (static) → http://localhost:${PORT}`);
+  console.log(`\n  Persora (static) → http://localhost:${PORT}`);
   console.log(`  같은 네트워크의 휴대폰: http://[이 PC의 IP]:${PORT}\n`);
 });

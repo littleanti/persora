@@ -1,4 +1,4 @@
-# PLAN — Persona Mirror React UI/UX 동기화 실행 계획
+# PLAN — Persora React UI/UX 동기화 실행 계획
 
 > 문서 버전: 1.1 · 작성일: 2026-05-31 · 기준: PRD 1.1 / TRD 1.1 / WIREFRAMES 1.0
 
@@ -49,7 +49,7 @@ persona-mirror/
 └── (제거) server.py, requirements.txt, static/, data/
 ```
 
-> 마이그레이션 기준은 기존 vanilla 마크업 보존이 아니라 `D:\yoon\codes\say-awsomely`의 React/Tailwind UI 셸이다. Persona Mirror 고유 기능만 별도 React 화면으로 구현한다.
+> 마이그레이션 기준은 기존 vanilla 마크업 보존이 아니라 `D:\yoon\codes\say-awsomely`의 React/Tailwind UI 셸이다. Persora 고유 기능만 별도 React 화면으로 구현한다.
 
 ## 2. 작업 분해 & 의존성 (waves)
 

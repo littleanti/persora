@@ -1,7 +1,7 @@
 // 앱 전역 상수 — 모델/쿠키/DB 설정의 단일 출처(single source of truth).
 
-/** Gemini 모델명. 변경 시 이 한 곳만 수정. */
-export const GEMINI_MODEL = 'gemini-2.5-flash';
+/** Gemini/Gemma 모델명. 변경 시 이 한 곳만 수정. */
+export const GEMINI_MODEL = 'gemma-4-31b-it';
 
 /** API 키를 보관하는 쿠키 이름 (사용자 요구사항: 쿠키 저장). */
 export const COOKIE_KEY_NAME = 'pm_gemini_key';

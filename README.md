@@ -1,8 +1,10 @@
-# 🧠 Persona Mirror
+# 🧠 Persora
 
 > 대화 기록으로 상대방의 페르소나를 분석하고, 받은 메시지에서 **"상대방이 원하는 답변"** 을 추론해주는 모바일 웹 앱
 
-**v2 — Client-First 아키텍처**: 개인 데이터는 전부 **내 브라우저**에 저장되고, AI 분석은 **내 Google Gemini API 키**로 브라우저가 직접 수행합니다. 서버는 정적 파일만 서빙하며 대화 내용을 절대 보관하지 않습니다.
+**v2 — Client-First 아키텍처**: 개인 데이터는 전부 **내 브라우저**에 저장되고, AI 분석은 **내 Google AI Studio API 키**로 브라우저가 직접 수행합니다. 서버는 정적 파일만 서빙하며 대화 내용을 절대 보관하지 않습니다.
+
+> 코드네임/저장소: `persona-mirror` · 앱 표시명: **Persora** (한·영 단일 표기)
 
 ---
 
@@ -30,7 +32,7 @@
 | 구분 | 기술 |
 |------|------|
 | 프론트엔드 | React 18 + TypeScript + Vite + Tailwind CSS (모바일 웹 SPA) |
-| AI 엔진 | Google Gemini (`@google/genai`, 브라우저 직접 호출) |
+| AI 엔진 | Google AI Studio (Gemini API) · 모델 `gemma-4-31b-it` · `@google/genai` 브라우저 직접 호출 |
 | 개인 데이터 저장 | IndexedDB (브라우저 로컬) |
 | API 키 저장 | Cookie (브라우저 로컬) |
 | 서버 | Node + Express (정적 파일 서빙 전용) |

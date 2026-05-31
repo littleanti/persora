@@ -1,6 +1,6 @@
-# Persona Mirror — React UI/UX Sync Wireframes
+# Persora — React UI/UX Sync Wireframes
 
-> 작성일: 2026-05-31 · 목적: `say-awsomely` 형제 앱의 React UI/UX 셸을 기준으로 Persona Mirror 화면을 재구성한다.
+> 작성일: 2026-05-31 · 목적: `say-awsomely` 형제 앱의 React UI/UX 셸을 기준으로 Persora 화면을 재구성한다.
 
 ## 1. 공통 셸
 
@@ -11,13 +11,13 @@
 - 온보딩 모달, 토스트, 슬라이드업 다이얼로그, fade/slide 애니메이션 톤.
 
 다르게 유지할 것:
-- 앱 제목: `페르소나 분석기` / `Persona Mirror`.
+- 앱 제목: `Persora` (한·영 공통, 단일 표기).
 - logo/favicon: 현재 프로젝트의 `/app-logo.png`, `/favicon.png`, `/app-icon-192.png`, `/apple-touch-icon.png`.
 - 핵심 탭 기능: `페르소나`, `분석하기`, `기록`.
 
 ```
 ┌──────────────────────────────────────────────┐
-│  [app-logo] 페르소나 분석기     ● Gemini  한 │  ← sibling top status bar
+│  [app-logo] Persora             ● Gemini  한 │  ← sibling top status bar
 ├──────────────────────────────────────────────┤
 │                                              │
 │              active route content            │
@@ -30,7 +30,7 @@
 
 ## 2. 첫 진입 — API 키 온보딩
 
-`say-awsomely`의 중앙 모달 패턴을 그대로 사용한다. 로고와 문구만 Persona Mirror에 맞춘다.
+`say-awsomely`의 중앙 모달 패턴을 그대로 사용한다. 로고와 문구만 Persora에 맞춘다.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -38,7 +38,7 @@
 │                                              │
 │        ┌────────────────────────────┐        │
 │        │          [app-logo]         │        │
-│        │  페르소나 분석기에 오신... │        │
+│        │  Persora에 오신...         │        │
 │        │  Gemini API 키 입력        │        │
 │        │  [ AIza...              ]  │        │
 │        │  [AI Studio에서 키 발급]   │        │
@@ -70,7 +70,7 @@
 
 ### 새 페르소나 다이얼로그
 
-`PhraseAddDialog`와 같은 중앙 카드 모달/입력 스타일을 사용하되, Persona Mirror의 입력 방식 탭(텍스트/이미지)을 유지한다.
+`PhraseAddDialog`와 같은 중앙 카드 모달/입력 스타일을 사용하되, Persora의 입력 방식 탭(텍스트/이미지)을 유지한다.
 
 ```
 ┌─ 새 페르소나 만들기 ───────────────────────┐
@@ -89,7 +89,7 @@
 
 ## 4. 탭 2 — 분석하기
 
-도메인 UI만 Persona Mirror 고유 화면으로 유지한다. 카드/textarea/primary button/결과 카드 스타일은 형제 앱과 동일한 Tailwind 토큰으로 구성한다.
+도메인 UI만 Persora 고유 화면으로 유지한다. 카드/textarea/primary button/결과 카드 스타일은 형제 앱과 동일한 Tailwind 토큰으로 구성한다.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -126,7 +126,7 @@
 
 ## 6. 구현 메모
 
-- `src/App.tsx`는 형제 앱의 `App.tsx` 셸 구조를 따르고, 탭 정의만 Persona Mirror에 맞춘다.
+- `src/App.tsx`는 형제 앱의 `App.tsx` 셸 구조를 따르고, 탭 정의만 Persora에 맞춘다.
 - `Toast`, `ApiKeyStatus`, `LanguageToggle`, `OnboardingModal`은 형제 앱 컴포넌트 구조를 기준으로 포팅한다.
 - 기존 vanilla DOM 기반 `components/*`, `routes/*`는 React 컴포넌트로 전환한다.
 - 기존 도메인 레이어(`lib/persona.ts`, `lib/analysis.ts`, `repos/*`, `gemini.ts`, `i18n.ts`)는 최대한 유지하고 React에서 호출한다.
