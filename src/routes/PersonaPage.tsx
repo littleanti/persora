@@ -218,11 +218,11 @@ function CreatePersonaDialog({
         pressedOnBackdrop.current = false;
       }}
     >
-      <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto bg-white border border-slate-200 rounded-t-3xl shadow-soft-lg animate-slide-up">
-        <div className="flex justify-center pt-3 pb-1">
+      <div className="w-full max-w-lg h-[92dvh] flex flex-col bg-white border border-slate-200 rounded-t-3xl shadow-soft-lg animate-slide-up">
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-slate-300" />
         </div>
-        <div className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center justify-between px-5 py-3 shrink-0">
           <h3 className="font-semibold text-slate-900 text-base">{translate('create.title')}</h3>
           <button
             onClick={onClose}
@@ -232,7 +232,7 @@ function CreatePersonaDialog({
           </button>
         </div>
 
-        <div className="px-5 pb-6 space-y-3">
+        <div className="px-5 pb-6 flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
               <span className="text-xs font-medium text-slate-500">{translate('create.otherName')}</span>
@@ -275,13 +275,13 @@ function CreatePersonaDialog({
                 onChange={(e) => setConversation(e.target.value)}
                 rows={8}
                 placeholder={translate('create.convPlaceholder')}
-                className="w-full bg-slate-50 border-[1.5px] border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white resize-none transition-colors leading-relaxed"
+                className="w-full flex-1 min-h-[10rem] bg-slate-50 border-[1.5px] border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white resize-none transition-colors leading-relaxed"
               />
-              <p className="text-xs text-slate-400 leading-relaxed">{translate('create.textHint')}</p>
+              <p className="text-xs text-slate-400 leading-relaxed shrink-0">{translate('create.textHint')}</p>
             </>
           ) : (
             <>
-              <label className="flex flex-col items-center justify-center gap-2 min-h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 text-sm font-medium cursor-pointer hover:border-indigo-300 hover:text-indigo-500 transition-colors">
+              <label className="flex flex-1 flex-col items-center justify-center gap-2 min-h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 text-sm font-medium cursor-pointer hover:border-indigo-300 hover:text-indigo-500 transition-colors">
                 <input type="file" accept="image/*" multiple hidden onChange={(e) => void onFiles(e.target.files)} />
                 <span>{translate('create.imageDropzone')}</span>
               </label>
@@ -307,7 +307,7 @@ function CreatePersonaDialog({
           <button
             onClick={() => void onCreate()}
             disabled={saving}
-            className="w-full py-3 rounded-full bg-wordrobe-gradient text-white font-semibold text-sm shadow-glow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[.98]"
+            className="w-full py-3 rounded-full bg-wordrobe-gradient text-white font-semibold text-sm shadow-glow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[.98] shrink-0"
           >
             {saving ? translate('loading.creatingPersona') : translate('btn.create')}
           </button>
