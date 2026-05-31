@@ -53,8 +53,9 @@ export default function AnalyzePage() {
     try {
       const next = await analyzeMessage(selectedPersonaId, message.trim());
       setResult(next);
-    } catch {
-      pushToast(translate('toast.analyzeFail'), 'error');
+    } catch (err) {
+      const msg = err instanceof Error && err.message ? err.message : translate('toast.analyzeFail');
+      pushToast(msg, 'error');
     } finally {
       setAnalyzing(false);
     }

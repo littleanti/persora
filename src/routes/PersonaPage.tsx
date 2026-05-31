@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { InlineImage, PersonaFields, PersonaRecord, PersonaSummary } from '@/lib/types';
 import { formatDate, getInitial } from '@/lib/dom';
@@ -134,6 +134,9 @@ function CreatePersonaDialog({
   const [mode, setMode] = useState<InputMode>('text');
   const [images, setImages] = useState<InlineImage[]>([]);
   const [saving, setSaving] = useState(false);
+  // 백드롭 클릭으로만 닫기 — textarea에서 드래그(텍스트 선택) 후 백드롭에서 손을 떼면
+  // click 이벤트가 공통 조상(백드롭)에서 발생해 모달이 잘못 닫히는 버그를 막는다.
+  const pressedOnBackdrop = useRef(false);
 
   if (!open) return null;
 
@@ -194,8 +197,10 @@ function CreatePersonaDialog({
       reset();
       onCreated();
       onClose();
-    } catch {
-      pushToast(translate('toast.personaCreateFail'), 'error');
+    } catch (err) {
+      // generate()가 이미 현지화된 사용자 친화 메시지를 던지므로 그대로 노출 (원인 진단 가능하게)
+      const msg = err instanceof Error && err.message ? err.message : translate('toast.personaCreateFail');
+      pushToast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -204,8 +209,13 @@ function CreatePersonaDialog({
   return (
     <div
       className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex items-end justify-center"
+      onMouseDown={(e) => {
+        pressedOnBackdrop.current = e.target === e.currentTarget;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        // 누름과 뗌이 모두 백드롭에서 일어난 진짜 백드롭 클릭일 때만 닫는다.
+        if (e.target === e.currentTarget && pressedOnBackdrop.current) onClose();
+        pressedOnBackdrop.current = false;
       }}
     >
       <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto bg-white border border-slate-200 rounded-t-3xl shadow-soft-lg animate-slide-up">
@@ -323,6 +333,7 @@ function PersonaDetailDialog({
   const translate = useT();
   const [tab, setTab] = useState<DetailTab>('other');
   const [showConversation, setShowConversation] = useState(false);
+  const pressedOnBackdrop = useRef(false);
 
   useEffect(() => {
     setTab('other');
@@ -359,8 +370,12 @@ function PersonaDetailDialog({
   return (
     <div
       className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex items-end justify-center"
+      onMouseDown={(e) => {
+        pressedOnBackdrop.current = e.target === e.currentTarget;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && pressedOnBackdrop.current) onClose();
+        pressedOnBackdrop.current = false;
       }}
     >
       <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto bg-white border border-slate-200 rounded-t-3xl shadow-soft-lg animate-slide-up">

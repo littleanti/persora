@@ -2,10 +2,30 @@
 // 키/프롬프트는 콘솔에 출력하지 않는다 (TRD §8).
 
 import { GoogleGenAI } from '@google/genai';
-import { GEMINI_MODEL } from '@/lib/config';
+import {
+  TEXT_MODEL,
+  IMAGE_MODEL,
+  modelSupportsThinkingConfig,
+  TEXT_REQUEST_TIMEOUT_MS,
+  IMAGE_REQUEST_TIMEOUT_MS,
+} from '@/lib/config';
 import { getApiKey } from '@/lib/repos/settingsRepo';
 import { t } from './i18n';
 import type { KeyValidationResult, InlineImage } from '@/lib/types';
+
+/**
+ * 모델·타임아웃에 맞는 요청 설정을 만든다.
+ * - thinking 지원 모델(gemini-*)은 thinkingBudget=0으로 추론 토큰을 꺼 지연을 크게 줄인다
+ *   (gemini-3.1-flash-lite 기준 ~58s → ~6.5s). gemma는 미지원이므로 보내지 않는다(400 방지).
+ * - httpOptions.timeout으로 모델별 타임아웃을 명시해 느린 이미지 경로의 조기 실패를 막는다.
+ */
+function buildConfig(model: string, timeoutMs: number): Record<string, unknown> {
+  const config: Record<string, unknown> = { httpOptions: { timeout: timeoutMs } };
+  if (modelSupportsThinkingConfig(model)) {
+    config['thinkingConfig'] = { thinkingBudget: 0 };
+  }
+  return config;
+}
 
 /**
  * 저장된 API 키로 Gemini에 프롬프트를 전송하고 텍스트를 반환한다.
@@ -20,14 +40,20 @@ export async function generate(prompt: string, images?: InlineImage[]): Promise<
 
   const ai = new GoogleGenAI({ apiKey });
 
+  const useImages = !!images && images.length > 0;
+
+  // 입력 방식에 따라 모델 분기: 이미지면 비전(gemma), 아니면 빠른 텍스트 모델.
+  const model = useImages ? IMAGE_MODEL : TEXT_MODEL;
+  const timeoutMs = useImages ? IMAGE_REQUEST_TIMEOUT_MS : TEXT_REQUEST_TIMEOUT_MS;
+
   // 텍스트 전용이면 문자열 그대로, 이미지가 있으면 parts 배열로 멀티모달 구성.
-  const contents = images && images.length > 0
+  const contents = useImages
     ? [
         {
           role: 'user',
           parts: [
             { text: prompt },
-            ...images.map((img) => ({
+            ...images!.map((img) => ({
               inlineData: { mimeType: img.mimeType, data: img.data },
             })),
           ],
@@ -37,8 +63,9 @@ export async function generate(prompt: string, images?: InlineImage[]): Promise<
 
   try {
     const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
+      model,
       contents,
+      config: buildConfig(model, timeoutMs),
     });
     return response.text ?? '';
   } catch (err: unknown) {
@@ -59,8 +86,9 @@ export async function validateKey(key: string): Promise<KeyValidationResult> {
 
   try {
     await ai.models.generateContent({
-      model: GEMINI_MODEL,
+      model: TEXT_MODEL,
       contents: 'ping',
+      config: buildConfig(TEXT_MODEL, TEXT_REQUEST_TIMEOUT_MS),
     });
     return { ok: true };
   } catch (err: unknown) {
@@ -118,17 +146,19 @@ export function extractJson(text: string): Record<string, unknown> {
 
 // ── 내부 헬퍼 ────────────────────────────────────────────────────────────────
 
-/** HTTP 400/403 계열 인증 오류 여부 판단. */
+/** 인증(키) 오류 여부 판단. */
 function isAuthError(err: unknown): boolean {
   const msg = getErrorMessage(err).toLowerCase();
-  // @google/genai SDK는 status code를 메시지나 status 프로퍼티에 노출
-  if (msg.includes('400') || msg.includes('403')) return true;
+  // 키와 직접 관련된 신호만 인증 오류로 본다.
+  // (주의: 일반 400은 thinking budget 미지원 등 키와 무관한 경우도 있어 제외 — 오분류 방지)
   if (msg.includes('api key') || msg.includes('api_key')) return true;
+  if (msg.includes('api_key_invalid') || msg.includes('permission_denied')) return true;
   if (msg.includes('invalid') && msg.includes('key')) return true;
   if (msg.includes('unauthorized') || msg.includes('forbidden')) return true;
-  // SDK가 던지는 GoogleGenerativeAIError의 status 프로퍼티 확인
+  // 403은 거의 항상 권한/키 문제. 403만 status로도 인정.
+  if (msg.includes('403')) return true;
   const status = (err as Record<string, unknown>)?.['status'];
-  if (status === 400 || status === 403) return true;
+  if (status === 403) return true;
   return false;
 }
 
@@ -156,6 +186,14 @@ function toUserFriendlyError(err: unknown): Error {
     return new Error(t('err.network'));
   }
   const msg = getErrorMessage(err);
+  const lower = msg.toLowerCase();
+  const name = (err as { name?: string })?.name ?? '';
+  if (name === 'AbortError' || lower.includes('timeout') || lower.includes('timed out') || lower.includes('aborted')) {
+    return new Error(t('err.timeout'));
+  }
+  if (msg.includes('429') || lower.includes('quota') || lower.includes('rate limit')) {
+    return new Error(t('err.rateLimit'));
+  }
   if (msg.includes('500') || msg.includes('503')) {
     return new Error(t('err.serviceTemp'));
   }

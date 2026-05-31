@@ -161,8 +161,15 @@ const MESSAGES: Record<Lang, Dict> = {
     'err.keyValidate': '키 검증 중 오류가 발생했습니다: {msg}',
     'err.keyNotSet': 'API 키가 설정되지 않았습니다. 키를 먼저 입력해주세요.',
     'err.serviceTemp': 'Gemini 서비스에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+    'err.rateLimit': 'API 사용 한도(무료 할당량)를 초과했습니다. 잠시 후 다시 시도하거나 결제/할당량을 확인해주세요.',
+    'err.timeout': '응답이 너무 오래 걸려 시간 초과되었습니다. 캡처 이미지 수를 줄이거나 잠시 후 다시 시도해주세요.',
     'err.aiGeneric': 'AI 응답 중 오류가 발생했습니다: {msg}',
     'err.dbOpen': '브라우저 저장소를 여는 데 실패했습니다.',
+
+    // 에러 경계 (렌더 예외 폴백)
+    'error.boundaryTitle': '화면을 표시하는 중 문제가 발생했어요',
+    'error.boundaryDesc': '잠시 후 다시 시도해주세요. 저장된 데이터는 안전합니다.',
+    'error.boundaryRetry': '다시 시도',
 
     // 분석 응답 파싱 실패 폴백 (저장됨 — 생성 시점 언어로 고정)
     'parse.failAnalysis': 'AI 응답을 파싱하는 데 문제가 발생했습니다. 원본 응답을 확인하세요.',
@@ -318,8 +325,15 @@ const MESSAGES: Record<Lang, Dict> = {
     'err.keyValidate': 'An error occurred while validating the key: {msg}',
     'err.keyNotSet': 'No API key is set. Please enter your key first.',
     'err.serviceTemp': 'Gemini had a temporary error. Please try again in a moment.',
+    'err.rateLimit': 'API usage limit (free quota) exceeded. Please retry later or check your billing/quota.',
+    'err.timeout': 'The response took too long and timed out. Try fewer screenshots or retry in a moment.',
     'err.aiGeneric': 'An error occurred while getting the AI response: {msg}',
     'err.dbOpen': 'Failed to open browser storage.',
+
+    // Error boundary (render-exception fallback)
+    'error.boundaryTitle': 'Something went wrong while rendering',
+    'error.boundaryDesc': 'Please try again in a moment. Your saved data is safe.',
+    'error.boundaryRetry': 'Try again',
 
     // Analysis parse-failure fallback (persisted — frozen at creation-time language)
     'parse.failAnalysis': 'There was a problem parsing the AI response. See the raw response below.',
