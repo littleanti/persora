@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { InlineImage, PersonaFields, PersonaRecord, PersonaSummary } from '@/lib/types';
 import { formatDate, getInitial } from '@/lib/dom';
 import { t } from '@/lib/i18n';
-import { createPersona, getPersona, listPersonaSummaries, removePersona } from '@/lib/persona';
+import { createPersona, getPersona, listPersonaSummaries, removePersona, updatePersona } from '@/lib/persona';
 import { useApp } from '@/lib/store';
 import { useLocale, useT } from '@/lib/useI18n';
 
@@ -321,23 +321,29 @@ function PersonaDetailDialog({
   persona,
   onClose,
   onDeleted,
+  onUpdated,
 }: {
   persona: PersonaRecord | null;
   onClose: () => void;
   onDeleted: () => void;
+  onUpdated: (record: PersonaRecord) => void;
 }) {
   const navigate = useNavigate();
   const selectedId = useApp((s) => s.selectedPersonaId);
   const setSelectedPersonaId = useApp((s) => s.setSelectedPersonaId);
+  const apiKey = useApp((s) => s.apiKey);
   const pushToast = useApp((s) => s.pushToast);
   const translate = useT();
   const [tab, setTab] = useState<DetailTab>('other');
   const [showConversation, setShowConversation] = useState(false);
+  const [updateText, setUpdateText] = useState('');
+  const [updating, setUpdating] = useState(false);
   const pressedOnBackdrop = useRef(false);
 
   useEffect(() => {
     setTab('other');
     setShowConversation(false);
+    setUpdateText('');
   }, [persona?.id]);
 
   if (!persona) return null;
@@ -364,6 +370,29 @@ function PersonaDetailDialog({
       onClose();
     } catch {
       pushToast(translate('toast.deleteFail'), 'error');
+    }
+  };
+
+  const onUpdate = async () => {
+    if (!apiKey) {
+      pushToast(translate('status.noKey'), 'error');
+      return;
+    }
+    if (!updateText.trim()) {
+      pushToast(translate('toast.enterConversation'), 'error');
+      return;
+    }
+    setUpdating(true);
+    try {
+      const record = await updatePersona(persona.id, { conversation: updateText.trim() });
+      pushToast(translate('toast.personaUpdated', { name: persona.name }), 'success');
+      setUpdateText('');
+      onUpdated(record);
+    } catch (err) {
+      const msg = err instanceof Error && err.message ? err.message : translate('toast.personaUpdateFail');
+      pushToast(msg, 'error');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -450,6 +479,24 @@ function PersonaDetailDialog({
                 {persona.conversation}
               </pre>
             )}
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 space-y-2">
+            <p className="text-sm font-medium text-slate-600">{translate('detail.updateTitle')}</p>
+            <textarea
+              value={updateText}
+              onChange={(e) => setUpdateText(e.target.value)}
+              rows={3}
+              placeholder={translate('detail.updatePlaceholder')}
+              className="w-full bg-white border-[1.5px] border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 resize-none transition-colors"
+            />
+            <button
+              onClick={() => void onUpdate()}
+              disabled={updating || !updateText.trim()}
+              className="w-full py-2.5 rounded-full bg-indigo-50 text-indigo-600 font-semibold text-sm transition-all active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {updating ? translate('loading.updating') : translate('btn.update')}
+            </button>
           </div>
 
           <div className="grid grid-cols-[1fr_auto] gap-3">
@@ -586,7 +633,15 @@ export default function PersonaPage() {
       )}
 
       <CreatePersonaDialog open={createOpen} onClose={() => setCreateOpen(false)} onCreated={() => void load()} />
-      <PersonaDetailDialog persona={detail} onClose={() => setDetail(null)} onDeleted={() => void load()} />
+      <PersonaDetailDialog
+        persona={detail}
+        onClose={() => setDetail(null)}
+        onDeleted={() => void load()}
+        onUpdated={(rec) => {
+          setDetail(rec);
+          void load();
+        }}
+      />
     </section>
   );
 }

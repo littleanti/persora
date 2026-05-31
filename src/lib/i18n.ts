@@ -66,6 +66,17 @@ const MESSAGES: Record<Lang, Dict> = {
     'intent.custom': '직접 입력',
     'intent.customPlaceholder': '원하는 답장 방향을 적어주세요 (예: 사과하고 싶어)',
 
+    // Phase 2 — 타겟 수동 교정 / 페르소나 업데이트
+    'analyze.pickTarget': '다른 메시지에 답장하기',
+    'analyze.pickTargetHint': '자동으로 잡은 게 아니라면 답장할 메시지를 직접 골라주세요.',
+    'detail.updateTitle': '추가 대화로 업데이트',
+    'detail.updatePlaceholder': '새로 나눈 대화를 붙여넣으면 페르소나가 더 정확해져요',
+    'btn.update': '업데이트',
+    'loading.updating': '업데이트 중...',
+    'toast.enterConversation': '추가할 대화를 입력해주세요',
+    'toast.personaUpdated': '{name} 페르소나를 업데이트했어요',
+    'toast.personaUpdateFail': '페르소나 업데이트에 실패했습니다',
+
     // 기록 페이지
     'history.empty': '아직 분석 기록이 없어요',
     'history.reason': '원하는 이유:',
@@ -246,6 +257,17 @@ const MESSAGES: Record<Lang, Dict> = {
     'intent.persuade': 'Persuade',
     'intent.custom': 'Custom',
     'intent.customPlaceholder': 'Describe the reply direction (e.g. I want to apologize)',
+
+    // Phase 2 — manual target correction / persona update
+    'analyze.pickTarget': 'Reply to a different message',
+    'analyze.pickTargetHint': 'If the auto-detected one is wrong, pick the message to reply to.',
+    'detail.updateTitle': 'Update with more conversation',
+    'detail.updatePlaceholder': 'Paste newer conversation to make the persona more accurate',
+    'btn.update': 'Update',
+    'loading.updating': 'Updating…',
+    'toast.enterConversation': 'Please enter the conversation to add',
+    'toast.personaUpdated': 'Updated the {name} persona',
+    'toast.personaUpdateFail': 'Failed to update the persona',
 
     // History page
     'history.empty': 'No analysis history yet',

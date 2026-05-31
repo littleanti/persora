@@ -18,7 +18,7 @@ import { personaRepo } from '@/lib/repos/personaRepo';
  */
 export async function analyzeReply(
   personaId: string,
-  input: { thread: string; intent: string },
+  input: { thread: string; intent: string; targetOverride?: string },
 ): Promise<AnalysisRecord> {
   const persona = await personaRepo.get(personaId);
   if (!persona) {
@@ -26,7 +26,8 @@ export async function analyzeReply(
   }
 
   const parsed = parseThread(input.thread, { name: persona.name, myName: persona.my_name });
-  const targetMessage = detectTarget(parsed);
+  // 사용자가 답장 타겟을 수동 지정했으면 그 값을 우선, 아니면 자동 검출.
+  const targetMessage = input.targetOverride?.trim() || detectTarget(parsed);
 
   const prompt = buildAnalyzePrompt(
     { persona, thread: input.thread, targetMessage, intent: input.intent },

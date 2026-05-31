@@ -15,29 +15,32 @@ import { getLang } from '@/lib/i18n';
 import { personaRepo } from '@/lib/repos/personaRepo';
 
 /**
- * 페르소나를 생성한다.
- * server.py create_persona와 동일하게:
+ * LLM raw 응답을 상대/나 페르소나로 분리한다.
  * - my_name 이 있으면 raw.other_persona / raw.my_persona 로 분리
  * - 없으면 persona=raw, my_persona={}
+ */
+function splitPersonaRaw(
+  raw: Record<string, unknown>,
+  myName: string,
+): { personaData: PersonaFields; myPersonaData: PersonaFields } {
+  if (myName) {
+    return {
+      personaData: (raw['other_persona'] as PersonaFields | undefined) ?? (raw as PersonaFields),
+      myPersonaData: (raw['my_persona'] as PersonaFields | undefined) ?? {},
+    };
+  }
+  return { personaData: raw as PersonaFields, myPersonaData: {} };
+}
+
+/**
+ * 페르소나를 생성한다.
  */
 export async function createPersona(input: CreatePersonaInput): Promise<PersonaRecord> {
   const myName = input.my_name.trim();
 
   const prompt = buildPersonaPrompt(input, getLang());
   const text = await generate(prompt, input.images);
-  const raw = extractJson(text);
-
-  let personaData: PersonaFields;
-  let myPersonaData: PersonaFields;
-
-  if (myName) {
-    // raw.get("other_persona", raw) / raw.get("my_persona", {})
-    personaData = (raw['other_persona'] as PersonaFields | undefined) ?? (raw as PersonaFields);
-    myPersonaData = (raw['my_persona'] as PersonaFields | undefined) ?? {};
-  } else {
-    personaData = raw as PersonaFields;
-    myPersonaData = {};
-  }
+  const { personaData, myPersonaData } = splitPersonaRaw(extractJson(text), myName);
 
   const record: PersonaRecord = {
     id: uuid(),
@@ -51,6 +54,44 @@ export async function createPersona(input: CreatePersonaInput): Promise<PersonaR
 
   await personaRepo.put(record);
   return record;
+}
+
+/**
+ * 기존 페르소나를 추가 대화로 수동 업데이트한다.
+ * 기존 대화 + 신규 대화를 합쳐 재분석하고, 같은 id/created_at을 유지한 채
+ * persona/my_persona/conversation을 갱신한다(updated_at 기록).
+ */
+export async function updatePersona(
+  id: string,
+  input: { conversation: string },
+): Promise<PersonaRecord> {
+  const existing = await personaRepo.get(id);
+  if (!existing) {
+    throw new Error('페르소나를 찾을 수 없습니다.');
+  }
+
+  const addition = input.conversation.trim();
+  const combined = existing.conversation
+    ? `${existing.conversation}\n${addition}`.trim()
+    : addition;
+
+  const prompt = buildPersonaPrompt(
+    { name: existing.name, my_name: existing.my_name, conversation: combined },
+    getLang(),
+  );
+  const text = await generate(prompt);
+  const { personaData, myPersonaData } = splitPersonaRaw(extractJson(text), existing.my_name.trim());
+
+  const updated: PersonaRecord = {
+    ...existing,
+    conversation: combined,
+    persona: personaData,
+    my_persona: myPersonaData,
+    updated_at: new Date().toISOString(),
+  };
+
+  await personaRepo.put(updated);
+  return updated;
 }
 
 /** 목록 화면용 경량 요약 리스트. */

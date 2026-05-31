@@ -26,6 +26,7 @@ export interface PersonaRecord {
   conversation: string; // 원본 대화 (브라우저에만 저장)
   persona: PersonaFields; // 상대 페르소나
   my_persona: PersonaFields; // 나의 페르소나(없으면 {})
+  updated_at?: string; // ISO 8601, 수동 업데이트 시각(없으면 미갱신 — 구 레코드 무회귀)
 }
 
 /** 분석 결과의 답변 후보. */

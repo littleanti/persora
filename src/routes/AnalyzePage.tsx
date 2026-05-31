@@ -4,10 +4,13 @@ import { REPLY_INTENTS } from '@/lib/types';
 import { analyzeReply } from '@/lib/analysis';
 import { listPersonaSummaries } from '@/lib/persona';
 import { detectTarget, parseThread } from '@/lib/thread';
+import { getThreadDraft, setThreadDraft } from '@/lib/drafts';
 import { useApp } from '@/lib/store';
 import { useLocale, useT } from '@/lib/useI18n';
 
 const CUSTOM = '__custom__';
+
+const trunc = (s: string, n = 60): string => (s.length > n ? `${s.slice(0, n)}…` : s);
 
 export default function AnalyzePage() {
   const selectedPersonaId = useApp((s) => s.selectedPersonaId);
@@ -21,6 +24,8 @@ export default function AnalyzePage() {
   const [thread, setThread] = useState('');
   const [intentKey, setIntentKey] = useState(''); // '' = 기본(공감), preset key, 또는 CUSTOM
   const [customIntent, setCustomIntent] = useState('');
+  const [targetOverride, setTargetOverride] = useState(''); // 사용자가 수동 지정한 답장 타겟('' = 자동)
+  const [pickOpen, setPickOpen] = useState(false);
   const [result, setResult] = useState<AnalysisRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
@@ -44,12 +49,29 @@ export default function AnalyzePage() {
 
   const selectedPersona = personas.find((p) => p.id === selectedPersonaId);
 
-  // 붙여넣은 스레드에서 답장할 대상(상대 마지막 메시지)을 실시간 검출해 표시.
-  const targetPreview = useMemo(() => {
-    if (!thread.trim() || !selectedPersona) return '';
-    const parsed = parseThread(thread, { name: selectedPersona.name, myName: selectedPersona.my_name });
-    return detectTarget(parsed);
+  // 페르소나 전환 시: 저장된 스레드 드래프트 복원 + 타겟/피커 초기화.
+  useEffect(() => {
+    setThread(getThreadDraft(selectedPersonaId ?? ''));
+    setTargetOverride('');
+    setPickOpen(false);
+  }, [selectedPersonaId]);
+
+  // 붙여넣은 스레드를 화자별로 파싱(타겟 검출/피커 공용).
+  const parsed = useMemo(() => {
+    if (!thread.trim() || !selectedPersona) return null;
+    return parseThread(thread, { name: selectedPersona.name, myName: selectedPersona.my_name });
   }, [thread, selectedPersona]);
+
+  const autoTarget = useMemo(() => (parsed ? detectTarget(parsed) : ''), [parsed]);
+  // 수동 지정이 있으면 그것을, 없으면 자동 검출을 사용.
+  const targetPreview = targetOverride || autoTarget;
+
+  // 스레드 입력 변경: 드래프트 저장 + 수동 타겟 초기화(스레드가 바뀌면 이전 지정이 무의미).
+  const onThreadChange = (value: string) => {
+    setThread(value);
+    setThreadDraft(selectedPersonaId ?? '', value);
+    setTargetOverride('');
+  };
 
   // analyzeReply에 넘길 의도 문자열: preset이면 키, custom이면 입력 텍스트, 기본이면 ''.
   const intentValue = intentKey === CUSTOM ? customIntent.trim() : intentKey;
@@ -69,7 +91,11 @@ export default function AnalyzePage() {
     }
     setAnalyzing(true);
     try {
-      const next = await analyzeReply(selectedPersonaId, { thread: thread.trim(), intent: intentValue });
+      const next = await analyzeReply(selectedPersonaId, {
+        thread: thread.trim(),
+        intent: intentValue,
+        targetOverride,
+      });
       setResult(next);
     } catch (err) {
       const msg = err instanceof Error && err.message ? err.message : translate('toast.analyzeFail');
@@ -136,19 +162,62 @@ export default function AnalyzePage() {
         <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-soft-sm">
           <textarea
             value={thread}
-            onChange={(e) => setThread(e.target.value)}
+            onChange={(e) => onThreadChange(e.target.value)}
             rows={7}
             placeholder={translate('analyze.threadPlaceholder')}
             className="w-full bg-transparent px-5 pt-4 pb-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
           />
-          <div className="px-4 pb-3 pt-1 border-t border-slate-100">
+          <div className="px-4 pb-3 pt-1 border-t border-slate-100 space-y-2">
             {targetPreview ? (
               <p className="text-xs text-slate-500">
                 <span className="font-semibold text-indigo-600">{translate('analyze.target')}</span>{' '}
-                <span className="text-slate-700">"{targetPreview.length > 60 ? `${targetPreview.slice(0, 60)}…` : targetPreview}"</span>
+                <span className="text-slate-700">"{trunc(targetPreview)}"</span>
               </p>
             ) : (
               <p className="text-xs text-slate-400">{translate('analyze.targetEmpty')}</p>
+            )}
+
+            {parsed && parsed.lines.some((l) => l.text.trim()) && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setPickOpen((v) => !v)}
+                  className="text-xs text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  {translate('analyze.pickTarget')} {pickOpen ? '▲' : '▾'}
+                </button>
+                {pickOpen && (
+                  <div className="mt-1 max-h-40 overflow-y-auto space-y-1 scrollbar-thin">
+                    {parsed.lines
+                      .filter((l) => l.text.trim())
+                      .map((l, i) => {
+                        const speakerLabel =
+                          l.speaker === 'me'
+                            ? selectedPersona?.my_name || '나'
+                            : l.speaker === 'other'
+                              ? selectedPersona?.name
+                              : l.label || '?';
+                        const active = targetPreview === l.text.trim();
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setTargetOverride(l.text.trim());
+                              setPickOpen(false);
+                            }}
+                            className={`w-full text-left rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
+                              active ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="font-semibold mr-1.5 text-slate-400">{speakerLabel}</span>
+                            {trunc(l.text.trim(), 50)}
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
