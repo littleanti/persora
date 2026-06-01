@@ -1,7 +1,8 @@
 # TRD — Persora (Client-First React 아키텍처)
 
-> 문서 버전: 1.2 · 갱신일: 2026-06-01 · 기준: PRD 1.2
+> 문서 버전: 1.3 · 갱신일: 2026-06-02 · 기준: PRD 1.3
 >
+> 1.3 변경: 메시지 분석(`analyzeReply`)도 캡처 이미지 입력을 받도록 확장. 이미지 모드는 thread 파싱/타겟 검출을 건너뛰고 `generate(prompt, images)`로 멀티모달 호출하며, `buildAnalyzePrompt`가 `useImages` 플래그로 분기한다. `fileToInlineImage`를 `src/lib/image.ts` 공용 모듈로 추출.
 > 1.2 변경: `@google/genai` 2.7.0 업그레이드(런타임 Node 20+), 멀티모달(캡처 이미지) 입력 반영, 텍스트/이미지 이중 모델·thinking budget·요청 타임아웃 명시, API 키 온보딩/관리 흐름 단순화 반영.
 
 ## 1. 아키텍처 개요
@@ -155,9 +156,11 @@ export function extractJson(text: string): Record<string, unknown>;
 
 ### 3.5 `src/lib/prompts.ts` (프롬프트 — Wave 1: AI)
 ```ts
-// server.py의 프롬프트를 그대로 이식
-export function buildPersonaPrompt(input: { name: string; my_name: string; conversation: string; }): string;
-export function buildAnalyzePrompt(input: { persona: PersonaRecord; message: string; }): string;
+// server.py의 프롬프트를 그대로 이식. 페르소나/분석 모두 useImages 분기로 캡처 이미지 입력 지원.
+export function buildPersonaPrompt(input: CreatePersonaInput, lang?: Lang): string;
+export function buildAnalyzePrompt(input: {
+  persona: PersonaRecord; thread: string; targetMessage: string; intent: string; useImages?: boolean;
+}, lang?: Lang): string; // useImages=true 면 "첨부 캡처에서 대화·답장 대상을 직접 읽으라"로 분기
 export const PERSONA_FIELDS: string;       // JSON 스키마 텍스트
 ```
 
@@ -198,12 +201,13 @@ export async function removePersona(id: string): Promise<void>;
 ```ts
 export async function analyzeReply(
   personaId: string,
-  input: { thread: string; intent: string; targetOverride?: string },
+  input: { thread: string; intent: string; targetOverride?: string; images?: InlineImage[] },
 ): Promise<AnalysisRecord>;
 export async function listAnalyses(): Promise<AnalysisRecord[]>;
 export async function removeAnalysis(id: string): Promise<void>;
 ```
-- `analyzeReply`: 페르소나 조회 → thread 파싱·타겟 메시지 검출(`thread.ts`) → `buildAnalyzePrompt` → `gemini.generate` → `extractJson` → 후보 정규화 → `analysisRepo.put`.
+- `analyzeReply`(텍스트): 페르소나 조회 → thread 파싱·타겟 메시지 검출(`thread.ts`) → `buildAnalyzePrompt` → `gemini.generate(prompt)` → `extractJson` → 후보 정규화 → `analysisRepo.put`.
+- `analyzeReply`(이미지): `images`가 있으면 thread 파싱/타겟 검출을 건너뛰고 `buildAnalyzePrompt({…, useImages:true})` → `gemini.generate(prompt, images)`(IMAGE_MODEL 분기)로 호출. 멀티모달 모델이 캡처에서 대화·답장 대상을 직접 판별한다. 기록의 `message`/`target_message`에는 캡처 장수 플레이스홀더를 저장한다.
 
 ### 3.9 `src/components/*` + `src/routes/*` (React Wave)
 - `components/Toast.tsx`: Zustand toast queue를 렌더한다. 형제 앱의 bottom-right rounded toast 패턴을 따른다.

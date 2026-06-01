@@ -56,6 +56,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'analyze.threadPlaceholder': '[상대] 오늘 뭐해?\n[나] 집에 있어\n[상대] 그럼 이따 볼래?',
     'analyze.target': '이 메시지에 답장',
     'analyze.targetEmpty': '대화를 붙여넣으면 답장할 마지막 메시지를 자동으로 잡아드려요.',
+    'analyze.imageHint': '🖼️ AI가 캡처에서 대화를 직접 읽어 답장을 분석해요. 답장할 마지막 메시지가 잘 보이게, 여러 장이면 시간 순서대로 올려주세요.',
     'analyze.intentLabel': '답장 의도',
     'intent.none': '기본(공감)',
     'intent.comfort': '위로·공감',
@@ -183,6 +184,7 @@ const MESSAGES: Record<Lang, Dict> = {
 
     // 저장 데이터 플레이스홀더
     'placeholder.imageCreated': '[채팅 캡처 이미지 {n}장으로 생성된 페르소나]',
+    'placeholder.imageAnalyzed': '[채팅 캡처 이미지 {n}장으로 분석한 답장]',
 
     // Gemini 오류 (사용자 노출)
     'err.invalidKey': 'API 키가 유효하지 않습니다. 키를 다시 확인해주세요.',
@@ -273,6 +275,7 @@ const MESSAGES: Record<Lang, Dict> = {
     'analyze.threadPlaceholder': '[Them] what are you up to?\n[Me] just home\n[Them] wanna meet later?',
     'analyze.target': 'Replying to',
     'analyze.targetEmpty': 'Paste a conversation and we’ll pick the last message to reply to.',
+    'analyze.imageHint': '🖼️ AI reads the conversation straight from your screenshots to craft replies. Make sure the latest message to reply to is visible; upload several in time order.',
     'analyze.intentLabel': 'Reply intent',
     'intent.none': 'Default (empathy)',
     'intent.comfort': 'Comfort',
@@ -400,6 +403,7 @@ const MESSAGES: Record<Lang, Dict> = {
 
     // Stored-data placeholder
     'placeholder.imageCreated': '[Persona created from {n} chat screenshot(s)]',
+    'placeholder.imageAnalyzed': '[Reply analyzed from {n} chat screenshot(s)]',
 
     // Gemini errors (user-facing)
     'err.invalidKey': 'The API key is invalid. Please check it again.',

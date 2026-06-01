@@ -70,11 +70,18 @@ export const REPLY_INTENTS: ReadonlyArray<{ key: ReplyIntentKey; labelKey: strin
   { key: 'persuade', labelKey: 'intent.persuade' },
 ];
 
-/** 분석(답장 생성) 입력. thread를 그대로 받고 의도는 자유 문자열('' 허용). */
+/**
+ * 분석(답장 생성) 입력.
+ * - 텍스트 모드: thread 에 최근 대화를 넣는다(의도는 자유 문자열, '' 허용).
+ * - 이미지 모드: images 에 채팅 캡처를 넣는다. 멀티모달 모델이 캡처에서 직접 대화를 읽어
+ *   답장 대상(상대의 마지막 메시지)을 판별하므로 thread/targetOverride 는 비운다.
+ */
 export interface AnalyzeReplyInput {
   personaId: string;
   thread: string;
   intent: string;
+  targetOverride?: string;
+  images?: InlineImage[];
 }
 
 /** 페르소나 목록 화면용 경량 요약. */

@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { AnalysisRecord, PersonaSummary } from '@/lib/types';
+import type { AnalysisRecord, InlineImage, PersonaSummary } from '@/lib/types';
 import { REPLY_INTENTS } from '@/lib/types';
 import { analyzeReply } from '@/lib/analysis';
+import { fileToInlineImage } from '@/lib/image';
 import { listPersonaSummaries } from '@/lib/persona';
 import { detectTarget, parseThread } from '@/lib/thread';
 import { getThreadDraft, setThreadDraft } from '@/lib/drafts';
 import { useApp } from '@/lib/store';
 import { useLocale, useT } from '@/lib/useI18n';
+
+type InputMode = 'text' | 'image';
 
 const CUSTOM = '__custom__';
 
@@ -21,7 +24,9 @@ export default function AnalyzePage() {
   useLocale();
 
   const [personas, setPersonas] = useState<PersonaSummary[]>([]);
+  const [mode, setMode] = useState<InputMode>('text'); // 'text' = 붙여넣기, 'image' = 캡처 이미지
   const [thread, setThread] = useState('');
+  const [images, setImages] = useState<InlineImage[]>([]);
   const [intentKey, setIntentKey] = useState(''); // '' = 기본(공감), preset key, 또는 CUSTOM
   const [customIntent, setCustomIntent] = useState('');
   const [targetOverride, setTargetOverride] = useState(''); // 사용자가 수동 지정한 답장 타겟('' = 자동)
@@ -49,11 +54,12 @@ export default function AnalyzePage() {
 
   const selectedPersona = personas.find((p) => p.id === selectedPersonaId);
 
-  // 페르소나 전환 시: 저장된 스레드 드래프트 복원 + 타겟/피커 초기화.
+  // 페르소나 전환 시: 저장된 스레드 드래프트 복원 + 타겟/피커/캡처 이미지 초기화.
   useEffect(() => {
     setThread(getThreadDraft(selectedPersonaId ?? ''));
     setTargetOverride('');
     setPickOpen(false);
+    setImages([]);
   }, [selectedPersonaId]);
 
   // 붙여넣은 스레드를 화자별로 파싱(타겟 검출/피커 공용).
@@ -76,13 +82,24 @@ export default function AnalyzePage() {
   // analyzeReply에 넘길 의도 문자열: preset이면 키, custom이면 입력 텍스트, 기본이면 ''.
   const intentValue = intentKey === CUSTOM ? customIntent.trim() : intentKey;
 
+  // 캡처 이미지 추가(여러 장 누적). 페르소나 생성과 동일한 변환 헬퍼 사용.
+  const onFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    try {
+      const next = await Promise.all(Array.from(files).map(fileToInlineImage));
+      setImages((current) => [...current, ...next]);
+    } catch {
+      pushToast(translate('toast.imageLoadFail'), 'error');
+    }
+  };
+
   const onAnalyze = async () => {
     if (!selectedPersonaId) {
       pushToast(translate('toast.selectPersona'), 'error');
       return;
     }
-    if (!thread.trim()) {
-      pushToast(translate('toast.enterMessage'), 'error');
+    if (mode === 'image' ? images.length === 0 : !thread.trim()) {
+      pushToast(translate(mode === 'image' ? 'toast.addImage' : 'toast.enterMessage'), 'error');
       return;
     }
     if (!apiKey) {
@@ -92,9 +109,10 @@ export default function AnalyzePage() {
     setAnalyzing(true);
     try {
       const next = await analyzeReply(selectedPersonaId, {
-        thread: thread.trim(),
+        thread: mode === 'image' ? '' : thread.trim(),
         intent: intentValue,
-        targetOverride,
+        targetOverride: mode === 'image' ? '' : targetOverride,
+        images: mode === 'image' ? images : undefined,
       });
       setResult(next);
     } catch (err) {
@@ -156,71 +174,111 @@ export default function AnalyzePage() {
         )}
       </div>
 
-      {/* 최근 대화 스레드 입력 */}
+      {/* 최근 대화 입력 — 텍스트 붙여넣기 또는 캡처 이미지 */}
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{translate('analyze.threadLabel')}</p>
-        <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-soft-sm">
-          <textarea
-            value={thread}
-            onChange={(e) => onThreadChange(e.target.value)}
-            rows={7}
-            placeholder={translate('analyze.threadPlaceholder')}
-            className="w-full bg-transparent px-5 pt-4 pb-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
-          />
-          <div className="px-4 pb-3 pt-1 border-t border-slate-100 space-y-2">
-            {targetPreview ? (
-              <p className="text-xs text-slate-500">
-                <span className="font-semibold text-indigo-600">{translate('analyze.target')}</span>{' '}
-                <span className="text-slate-700">"{trunc(targetPreview)}"</span>
-              </p>
-            ) : (
-              <p className="text-xs text-slate-400">{translate('analyze.targetEmpty')}</p>
-            )}
 
-            {parsed && parsed.lines.some((l) => l.text.trim()) && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setPickOpen((v) => !v)}
-                  className="text-xs text-slate-400 hover:text-indigo-600 transition-colors"
-                >
-                  {translate('analyze.pickTarget')} {pickOpen ? '▲' : '▾'}
-                </button>
-                {pickOpen && (
-                  <div className="mt-1 max-h-40 overflow-y-auto space-y-1 scrollbar-thin">
-                    {parsed.lines
-                      .filter((l) => l.text.trim())
-                      .map((l, i) => {
-                        const speakerLabel =
-                          l.speaker === 'me'
-                            ? selectedPersona?.my_name || '나'
-                            : l.speaker === 'other'
-                              ? selectedPersona?.name
-                              : l.label || '?';
-                        const active = targetPreview === l.text.trim();
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                              setTargetOverride(l.text.trim());
-                              setPickOpen(false);
-                            }}
-                            className={`w-full text-left rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
-                              active ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span className="font-semibold mr-1.5 text-slate-400">{speakerLabel}</span>
-                            {trunc(l.text.trim(), 50)}
-                          </button>
-                        );
-                      })}
+        <div className="flex rounded-2xl bg-slate-100 p-1 text-xs font-semibold">
+          {(['text', 'image'] as InputMode[]).map((item) => (
+            <button
+              key={item}
+              onClick={() => setMode(item)}
+              className={`flex-1 rounded-xl px-3 py-2 transition-colors ${
+                mode === item ? 'bg-white text-indigo-600 shadow-soft-sm' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {item === 'text' ? translate('create.tabText') : translate('create.tabImage')}
+            </button>
+          ))}
+        </div>
+
+        {mode === 'text' ? (
+          <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-soft-sm">
+            <textarea
+              value={thread}
+              onChange={(e) => onThreadChange(e.target.value)}
+              rows={7}
+              placeholder={translate('analyze.threadPlaceholder')}
+              className="w-full bg-transparent px-5 pt-4 pb-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
+            />
+            <div className="px-4 pb-3 pt-1 border-t border-slate-100 space-y-2">
+              {targetPreview ? (
+                <p className="text-xs text-slate-500">
+                  <span className="font-semibold text-indigo-600">{translate('analyze.target')}</span>{' '}
+                  <span className="text-slate-700">"{trunc(targetPreview)}"</span>
+                </p>
+              ) : (
+                <p className="text-xs text-slate-400">{translate('analyze.targetEmpty')}</p>
+              )}
+
+              {parsed && parsed.lines.some((l) => l.text.trim()) && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setPickOpen((v) => !v)}
+                    className="text-xs text-slate-400 hover:text-indigo-600 transition-colors"
+                  >
+                    {translate('analyze.pickTarget')} {pickOpen ? '▲' : '▾'}
+                  </button>
+                  {pickOpen && (
+                    <div className="mt-1 max-h-40 overflow-y-auto space-y-1 scrollbar-thin">
+                      {parsed.lines
+                        .filter((l) => l.text.trim())
+                        .map((l, i) => {
+                          const speakerLabel =
+                            l.speaker === 'me'
+                              ? selectedPersona?.my_name || '나'
+                              : l.speaker === 'other'
+                                ? selectedPersona?.name
+                                : l.label || '?';
+                          const active = targetPreview === l.text.trim();
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                setTargetOverride(l.text.trim());
+                                setPickOpen(false);
+                              }}
+                              className={`w-full text-left rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
+                                active ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span className="font-semibold mr-1.5 text-slate-400">{speakerLabel}</span>
+                              {trunc(l.text.trim(), 50)}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="flex flex-col items-center justify-center gap-2 min-h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-white text-slate-400 text-sm font-medium cursor-pointer hover:border-indigo-300 hover:text-indigo-500 transition-colors">
+              <input type="file" accept="image/*" multiple hidden onChange={(e) => void onFiles(e.target.files)} />
+              <span>{translate('create.imageDropzone')}</span>
+            </label>
+            {images.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {images.map((img, index) => (
+                  <div key={`${img.data.slice(0, 12)}-${index}`} className="relative w-16 h-16 overflow-hidden rounded-xl border border-slate-200">
+                    <img src={`data:${img.mimeType};base64,${img.data}`} alt="" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => setImages((current) => current.filter((_, i) => i !== index))}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/70 text-white text-xs leading-none"
+                    >
+                      x
+                    </button>
                   </div>
-                )}
+                ))}
               </div>
             )}
+            <p className="text-xs text-slate-400 leading-relaxed">{translate('analyze.imageHint')}</p>
           </div>
-        </div>
+        )}
       </div>
 
       {/* 답장 의도 */}
@@ -260,7 +318,7 @@ export default function AnalyzePage() {
         </p>
         <button
           onClick={() => void onAnalyze()}
-          disabled={analyzing || personas.length === 0 || !apiKey || !thread.trim() || (intentKey === CUSTOM && !customIntent.trim())}
+          disabled={analyzing || personas.length === 0 || !apiKey || (mode === 'image' ? images.length === 0 : !thread.trim()) || (intentKey === CUSTOM && !customIntent.trim())}
           className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-wordrobe-gradient shadow-glow-sm disabled:opacity-40 disabled:shadow-none transition-all hover:opacity-90 active:scale-[.98]"
         >
           {analyzing ? translate('loading.analyzing') : translate('btn.analyze')}

@@ -1,7 +1,7 @@
 // 메시지 분석 도메인 서비스.
 // server.py analyze_message / list_analyses / delete_analysis 로직 이식.
 
-import type { AnalysisRecord, CandidateReply } from '@/lib/types';
+import type { AnalysisRecord, CandidateReply, InlineImage } from '@/lib/types';
 import { uuid } from '@/lib/id';
 import { buildAnalyzePrompt } from '@/lib/prompts';
 import { generate, extractJson } from '@/lib/gemini';
@@ -18,22 +18,28 @@ import { personaRepo } from '@/lib/repos/personaRepo';
  */
 export async function analyzeReply(
   personaId: string,
-  input: { thread: string; intent: string; targetOverride?: string },
+  input: { thread: string; intent: string; targetOverride?: string; images?: InlineImage[] },
 ): Promise<AnalysisRecord> {
   const persona = await personaRepo.get(personaId);
   if (!persona) {
     throw new Error('페르소나를 찾을 수 없습니다.');
   }
 
-  const parsed = parseThread(input.thread, { name: persona.name, myName: persona.my_name });
-  // 사용자가 답장 타겟을 수동 지정했으면 그 값을 우선, 아니면 자동 검출.
-  const targetMessage = input.targetOverride?.trim() || detectTarget(parsed);
+  const images = input.images;
+  const useImages = !!images && images.length > 0;
+
+  // 이미지 모드는 텍스트 thread가 없으므로 파싱/타겟 검출을 건너뛴다.
+  // 멀티모달 모델이 첨부 캡처에서 직접 대화를 읽어 답장 대상(상대의 마지막 메시지)을 판별한다.
+  const targetMessage = useImages
+    ? ''
+    : input.targetOverride?.trim() ||
+      detectTarget(parseThread(input.thread, { name: persona.name, myName: persona.my_name }));
 
   const prompt = buildAnalyzePrompt(
-    { persona, thread: input.thread, targetMessage, intent: input.intent },
+    { persona, thread: input.thread, targetMessage, intent: input.intent, useImages },
     getLang(),
   );
-  const text = await generate(prompt);
+  const text = await generate(prompt, images);
   const result = extractJson(text);
 
   let analysis: string;
@@ -56,16 +62,20 @@ export async function analyzeReply(
       : [];
   }
 
+  // 이미지 모드는 답장 대상을 AI가 캡처에서 판별하므로 클라이언트에 타겟 텍스트가 없다.
+  // 기록 목록 미리보기가 비지 않도록 캡처 장수 플레이스홀더를 저장한다(생성 시점 언어로 고정).
+  const storedTarget = useImages ? t('placeholder.imageAnalyzed', { n: images!.length }) : targetMessage;
+
   const record: AnalysisRecord = {
     id: uuid(),
     persona_id: personaId,
     persona_name: persona.name,
-    message: targetMessage, // 구 스키마 호환: 타겟 메시지를 message로도 보존
+    message: storedTarget, // 구 스키마 호환: 타겟 메시지를 message로도 보존
     analysis,
     candidates,
     created_at: new Date().toISOString(),
-    thread: input.thread,
-    target_message: targetMessage,
+    thread: useImages ? '' : input.thread,
+    target_message: storedTarget,
     intent: input.intent,
   };
 

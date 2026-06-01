@@ -162,8 +162,10 @@ export function buildAnalyzePrompt(input: {
   thread: string;
   targetMessage: string;
   intent: string;
+  useImages?: boolean;
 }, lang: Lang = 'ko'): string {
   const { persona: record, thread, targetMessage, intent } = input;
+  const useImages = !!input.useImages;
   const { name, my_name, persona, my_persona } = record;
   const myName = my_name.trim();
   const langDirective = outputLangDirective(lang);
@@ -220,10 +222,21 @@ ${mySpeech}
 2. 모든 답변은 그 감정을 먼저 알아주고 받아들이는 말로 시작하세요. 조언·해결·화제 전환은 반드시 그 다음입니다.
 3. 다음은 절대 금지: 섣부른 조언/훈수, 감정 축소("별거 아냐", 성급한 "괜찮아질 거야"), 영혼 없는 진부한 위로, 질문만 줄줄이 늘어놓는 심문, ${name}의 감정을 평가·판단하기.`;
 
-  // 최근 대화 흐름 블록 (단기 맥락). 비어 있으면 생략하고 타겟 메시지만 사용.
-  const threadBlock = thread.trim()
-    ? `\n[최근 대화 흐름] (시간 순서, 맨 아래가 최신):\n${thread.trim()}\n`
-    : '';
+  // 최근 대화 흐름 블록 (단기 맥락).
+  // - 이미지 모드: 첨부 채팅 캡처에서 직접 대화를 읽도록 지시(별도 OCR 불필요).
+  // - 텍스트 모드: 붙여넣은 thread를 그대로 제공. 비어 있으면 생략하고 타겟 메시지만 사용.
+  const threadBlock = useImages
+    ? `\n[최근 대화 흐름] — 첨부된 채팅 캡처 이미지에 들어 있습니다. 이미지를 꼼꼼히 읽어 대화 내용을 파악하세요.
+- 말풍선의 좌/우 위치와 이름표를 근거로 각 발화가 누구의 것인지 판별하세요.
+- 여러 장이면 위→아래, 앞→뒤 순서로 시간 흐름을 이어서 해석하세요.\n`
+    : thread.trim()
+      ? `\n[최근 대화 흐름] (시간 순서, 맨 아래가 최신):\n${thread.trim()}\n`
+      : '';
+
+  // 답장 대상(타겟) 지시. 이미지 모드는 클라이언트가 타겟을 모르므로 AI가 캡처에서 직접 찾게 한다.
+  const targetBlock = useImages
+    ? `위 캡처 이미지 속 대화에서 ${name}이(가) ${receiverLabel}에게 보낸 마지막 메시지(= 답장할 대상)를 찾아내세요.`
+    : `위 대화에서 ${name}이(가) ${receiverLabel}에게 보낸 마지막 메시지(= 답장할 대상)는 다음과 같습니다:\n"${message}"`;
 
   // 후보 생성 지침 + JSON 스켈레톤 — 의도 유무로 분기.
   // 의도 미지정: 기존 공감 3축 그대로(무회귀). 의도 지정: 그 목표를 향한 3가지 다른 방식.
@@ -273,8 +286,7 @@ ${name}의 성격 및 소통 방식 분석:
 ${personaStr}
 ${otherSpeechBlock}
 ${myPersonaSection}${threadBlock}
-위 대화에서 ${name}이(가) ${receiverLabel}에게 보낸 마지막 메시지(= 답장할 대상)는 다음과 같습니다:
-"${message}"
+${targetBlock}
 
 ${name}의 성격·소통 방식·말투·감정 표현·관계 패턴과 위 최근 대화 흐름을 함께 고려하여 분석하세요:
 - ${name}이 지금 느끼는 핵심 감정은 무엇이고, 그 밑에 깔린 진짜 욕구는 무엇인가?

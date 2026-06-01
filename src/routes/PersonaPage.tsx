@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { InlineImage, PersonaFields, PersonaRecord, PersonaSummary } from '@/lib/types';
 import { formatDate, getInitial } from '@/lib/dom';
+import { fileToInlineImage } from '@/lib/image';
 import { t } from '@/lib/i18n';
 import { createPersona, getPersona, listPersonaSummaries, removePersona, updatePersona } from '@/lib/persona';
 import { useApp } from '@/lib/store';
@@ -24,22 +25,6 @@ const FIELD_LABELS: Record<string, string> = {
   tone: 'field.tone',
   key_interactions: 'field.key_interactions',
 };
-
-function fileToInlineImage(file: File): Promise<InlineImage> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result);
-      const comma = result.indexOf(',');
-      resolve({
-        mimeType: file.type || 'image/png',
-        data: comma >= 0 ? result.slice(comma + 1) : result,
-      });
-    };
-    reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-}
 
 function toReadable(value: unknown): string {
   if (value == null) return '';
