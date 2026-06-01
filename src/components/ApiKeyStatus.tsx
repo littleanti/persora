@@ -49,7 +49,7 @@ export default function ApiKeyStatus() {
             if (e.key === 'Enter') void save();
             if (e.key === 'Escape') setEditing(false);
           }}
-          placeholder="AIza..."
+          placeholder="AIgo..."
           className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-32 text-slate-900 focus:outline-none focus:border-indigo-500 transition-colors"
         />
         <button

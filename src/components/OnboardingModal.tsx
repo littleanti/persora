@@ -64,7 +64,7 @@ export default function OnboardingModal({ onSkip }: { onSkip?: () => void }) {
             type="password"
             autoComplete="off"
             spellCheck={false}
-            placeholder="AIza..."
+            placeholder="AIgo..."
             value={key}
             onChange={(e) => setKey(e.target.value)}
             onKeyDown={(e) => {
