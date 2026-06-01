@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import ApiKeyStatus from '@/components/ApiKeyStatus';
 import LanguageToggle from '@/components/LanguageToggle';
@@ -60,15 +60,10 @@ export default function App() {
   const apiKey = useApp((s) => s.apiKey);
   const pushToast = useApp((s) => s.pushToast);
   const t = useT();
-  const [showOnboarding, setShowOnboarding] = useState(true);
 
   useEffect(() => {
     document.title = t('app.title');
   }, [t]);
-
-  useEffect(() => {
-    if (apiKey) setShowOnboarding(false);
-  }, [apiKey]);
 
   useEffect(() => {
     initDB().catch(() => pushToast(t('err.dbOpen'), 'error'));
@@ -122,7 +117,7 @@ export default function App() {
         </div>
       </nav>
 
-      {!apiKey && showOnboarding && <OnboardingModal onSkip={() => setShowOnboarding(false)} />}
+      {!apiKey && <OnboardingModal />}
       <ToastContainer />
     </div>
   );

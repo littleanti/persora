@@ -129,19 +129,18 @@ const MESSAGES: Record<Lang, Dict> = {
     'field.tone': '말투',
     'field.key_interactions': '상호작용 패턴',
 
-    // API 키 시트
-    'apikey.title': 'Gemini API 키 설정',
-    'apikey.welcomeTitle': 'Persora에 오신 걸 환영합니다',
-    'apikey.welcomeDesc': '분석은 Google AI Studio (Gemini)를 사용합니다. 본인 API 키를 입력해 주세요.',
-    'apikey.intro':
+    // 온보딩 시트
+    'onboarding.title': 'Gemini API 키 설정',
+    'onboarding.welcomeTitle': 'Persora에 오신 걸 환영합니다',
+    'onboarding.welcomeDesc': '상대방의 페르소나에 맞는 답장을 찾아드려요.',
+    'onboarding.intro':
       '이 앱은 당신의 Google AI Studio(Gemini) API 키로 동작합니다. API 키는 이 브라우저의 localStorage에 저장되고, 대화 내용과 캡처 이미지는 분석을 위해 Google Gemini API로 직접 전송됩니다.',
-    'apikey.keyLabel': 'API 키',
-    'apikey.keyLabelHint': '* Google AI Studio에서 발급',
-    'apikey.consent': '대화 내용이 Gemini API로 전송되고, 로컬 데이터는 브라우저 데이터 삭제나 기기 변경 시 복구할 수 없음을 이해했습니다.',
-    'apikey.helpCta': 'AI Studio에서 키 발급받기 ↗',
+    'onboarding.keyLabel': 'API 키',
+    'onboarding.keyLabelHint': '* Google AI Studio에서 발급',
+    'onboarding.consent': '대화 내용이 Gemini API로 전송되고, 로컬 데이터는 브라우저 데이터 삭제나 기기 변경 시 복구할 수 없음을 이해했습니다.',
+    'onboarding.helpCta': 'AI Studio에서 키 발급받기 ↗',
     'btn.saveKey': '키 저장하고 시작하기',
     'btn.clearKey': '저장된 키 삭제',
-    'btn.later': '나중에 하기',
 
     // 로딩
     'loading.default': 'AI 분석 중...',
@@ -347,19 +346,18 @@ const MESSAGES: Record<Lang, Dict> = {
     'field.tone': 'Tone',
     'field.key_interactions': 'Interaction patterns',
 
-    // API key sheet
-    'apikey.title': 'Gemini API key',
-    'apikey.welcomeTitle': 'Welcome to Persora',
-    'apikey.welcomeDesc': 'Analysis uses Google AI Studio (Gemini). Enter your own API key to begin.',
-    'apikey.intro':
+    // Onboarding sheet
+    'onboarding.title': 'Gemini API key',
+    'onboarding.welcomeTitle': 'Welcome to Persora',
+    'onboarding.welcomeDesc': 'Find the perfect reply that fits the other person’s persona.',
+    'onboarding.intro':
       'This app runs on your own Google AI Studio (Gemini) API key. The key is stored in this browser localStorage, and conversation text or screenshots are sent directly to the Google Gemini API for analysis.',
-    'apikey.keyLabel': 'API key',
-    'apikey.keyLabelHint': '* issued by Google AI Studio',
-    'apikey.consent': 'I understand conversation data is sent to the Gemini API, and local data cannot be recovered if browser data is cleared or I switch devices.',
-    'apikey.helpCta': 'Get a key from AI Studio ↗',
+    'onboarding.keyLabel': 'API key',
+    'onboarding.keyLabelHint': '* issued by Google AI Studio',
+    'onboarding.consent': 'I understand conversation data is sent to the Gemini API, and local data cannot be recovered if browser data is cleared or I switch devices.',
+    'onboarding.helpCta': 'Get a key from AI Studio ↗',
     'btn.saveKey': 'Save key & start',
     'btn.clearKey': 'Delete saved key',
-    'btn.later': 'Later',
 
     // Loading
     'loading.default': 'AI analyzing…',

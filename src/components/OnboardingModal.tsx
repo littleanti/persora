@@ -6,7 +6,7 @@ import { looksLikeKey } from '@/lib/repos/settingsRepo';
 import { useApp } from '@/lib/store';
 import { useT } from '@/lib/useI18n';
 
-export default function OnboardingModal({ onSkip }: { onSkip?: () => void }) {
+export default function OnboardingModal() {
   const apiKey = useApp((s) => s.apiKey);
   const setApiKey = useApp((s) => s.setApiKey);
   const pushToast = useApp((s) => s.pushToast);
@@ -52,14 +52,14 @@ export default function OnboardingModal({ onSkip }: { onSkip?: () => void }) {
       <div className="relative max-w-md w-full bg-white border border-slate-200 rounded-2xl p-8 shadow-soft-lg animate-fade-in">
         <div className="text-center mb-8">
           <img src={APP_LOGO_SRC} alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover" />
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">{t('apikey.welcomeTitle')}</h2>
-          <p className="text-sm text-slate-500 leading-relaxed">{t('apikey.welcomeDesc')}</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">{t('onboarding.welcomeTitle')}</h2>
+          <p className="text-sm text-slate-500 leading-relaxed">{t('onboarding.welcomeDesc')}</p>
         </div>
 
-        <p className="text-sm text-slate-600 mb-6 leading-relaxed">{t('apikey.intro').replace(/<[^>]*>/g, '')}</p>
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">{t('onboarding.intro').replace(/<[^>]*>/g, '')}</p>
 
         <div className="mb-3">
-          <label className="block text-xs font-medium text-slate-500 mb-2">{t('apikey.keyLabel')}</label>
+          <label className="block text-xs font-medium text-slate-500 mb-2">{t('onboarding.keyLabel')}</label>
           <input
             type="password"
             autoComplete="off"
@@ -85,7 +85,7 @@ export default function OnboardingModal({ onSkip }: { onSkip?: () => void }) {
             <polyline points="15 3 21 3 21 9" />
             <line x1="10" y1="14" x2="21" y2="3" />
           </svg>
-          {t('apikey.helpCta')}
+          {t('onboarding.helpCta')}
         </a>
 
         <label className="flex items-start gap-3 mb-6 text-xs text-slate-500 cursor-pointer">
@@ -95,7 +95,7 @@ export default function OnboardingModal({ onSkip }: { onSkip?: () => void }) {
             onChange={(e) => setAgreed(e.target.checked)}
             className="mt-0.5 accent-indigo-500"
           />
-          <span className="leading-relaxed">{t('apikey.consent')}</span>
+          <span className="leading-relaxed">{t('onboarding.consent')}</span>
         </label>
 
         <button
@@ -105,16 +105,6 @@ export default function OnboardingModal({ onSkip }: { onSkip?: () => void }) {
         >
           {saving ? t('loading.checkingKey') : t('btn.saveKey')}
         </button>
-
-        {onSkip && (
-          <button
-            type="button"
-            onClick={onSkip}
-            className="mt-3 w-full py-2.5 rounded-xl text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
-          >
-            {t('btn.later')}
-          </button>
-        )}
       </div>
     </div>
   );
