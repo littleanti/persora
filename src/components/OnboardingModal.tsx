@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { GEMINI_API_KEY_HELP_URL } from '@/lib/config';
-import { validateKey } from '@/lib/gemini';
 import { APP_LOGO_SRC } from '@/lib/assets';
-import { looksLikeKey } from '@/lib/repos/settingsRepo';
 import { useApp } from '@/lib/store';
 import { useT } from '@/lib/useI18n';
 
@@ -14,13 +12,12 @@ export default function OnboardingModal() {
 
   const [key, setKey] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   if (apiKey) return null;
 
-  const onSubmit = async () => {
+  const onSubmit = () => {
     const trimmed = key.trim();
-    if (!looksLikeKey(trimmed)) {
+    if (!trimmed) {
       pushToast(t('toast.invalidKeyFormat'), 'error');
       return;
     }
@@ -28,18 +25,8 @@ export default function OnboardingModal() {
       pushToast(t('toast.confirmLocalOnly'), 'error');
       return;
     }
-    setSaving(true);
-    try {
-      const result = await validateKey(trimmed);
-      if (!result.ok) {
-        pushToast(result.error ?? t('toast.keyValidateFail'), 'error');
-        return;
-      }
-      setApiKey(trimmed);
-      pushToast(t('toast.keySaved'), 'success');
-    } finally {
-      setSaving(false);
-    }
+    setApiKey(trimmed);
+    pushToast(t('toast.keySaved'), 'success');
   };
 
   return (
@@ -68,7 +55,7 @@ export default function OnboardingModal() {
             value={key}
             onChange={(e) => setKey(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') void onSubmit();
+              if (e.key === 'Enter') onSubmit();
             }}
             className="w-full bg-slate-50 border-[1.5px] border-slate-200 rounded-2xl px-5 py-3.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
           />
@@ -99,11 +86,10 @@ export default function OnboardingModal() {
         </label>
 
         <button
-          onClick={() => void onSubmit()}
-          disabled={saving}
-          className="w-full py-3.5 rounded-2xl bg-wordrobe-gradient text-white font-semibold text-sm shadow-glow hover:opacity-90 active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => onSubmit()}
+          className="w-full py-3.5 rounded-2xl bg-wordrobe-gradient text-white font-semibold text-sm shadow-glow hover:opacity-90 active:scale-[.98] transition-all"
         >
-          {saving ? t('loading.checkingKey') : t('btn.saveKey')}
+          {t('btn.saveKey')}
         </button>
       </div>
     </div>
