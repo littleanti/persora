@@ -1,6 +1,8 @@
 # PLAN — Persora React UI/UX 동기화 실행 계획
 
-> 문서 버전: 1.1 · 작성일: 2026-05-31 · 기준: PRD 1.1 / TRD 1.1 / WIREFRAMES 1.0
+> 문서 버전: 1.2 · 갱신일: 2026-06-01 · 기준: PRD 1.2 / TRD 1.2 / WIREFRAMES 1.0
+>
+> 1.2 변경: 디렉터리 구조를 현재 코드 기준으로 갱신(i18n·drafts·assets 추가), `@google/genai` 2.7.0(Node 20+) 반영.
 
 ## 1. 목표 디렉터리 구조
 
@@ -24,23 +26,30 @@ persora/
 │   ├── App.tsx                 # 형제 앱과 동기화된 top bar/bottom nav/route shell
 │   ├── index.css               # Tailwind base + 형제 앱 공용 유틸
 │   ├── components/
-│   │   ├── ApiKeyStatus.tsx
+│   │   ├── ApiKeyStatus.tsx    # 헤더 키 상태 + 인라인 변경/삭제
 │   │   ├── LanguageToggle.tsx
 │   │   ├── OnboardingModal.tsx
+│   │   ├── ErrorBoundary.tsx
 │   │   └── Toast.tsx
 │   ├── routes/
-│   │   ├── PersonaPage.tsx
+│   │   ├── PersonaPage.tsx     # 텍스트/캡처 이미지 입력 페르소나 생성
 │   │   ├── AnalyzePage.tsx
 │   │   ├── HistoryPage.tsx
 │   │   └── SettingsPage.tsx
 │   ├── lib/
-│   │   ├── config.ts           # 모델명/localStorage 키/DB 상수
+│   │   ├── config.ts           # 모델명(text/image)/타임아웃/localStorage 키/DB 상수
 │   │   ├── types.ts            # 공유 타입 계약
-│   │   ├── persona.ts          # 페르소나 유스케이스
-│   │   ├── analysis.ts         # 분석 유스케이스
+│   │   ├── persona.ts          # 페르소나 유스케이스(텍스트+이미지)
+│   │   ├── analysis.ts         # 분석 유스케이스(thread + 답장 의도)
+│   │   ├── thread.ts           # 대화 thread 파싱/타겟 메시지 검출
+│   │   ├── drafts.ts           # 작성 중 대화 드래프트(localStorage)
 │   │   ├── dataManagement.ts   # 백업/가져오기/전체 삭제
-│   │   ├── gemini.ts           # @google/genai 호출 + extractJson + validateKey
+│   │   ├── gemini.ts           # @google/genai 2.7.0 호출 + extractJson + validateKey
 │   │   ├── prompts.ts          # 페르소나/분석 프롬프트(server.py 이식)
+│   │   ├── i18n.ts             # KO/EN 사전
+│   │   ├── useI18n.ts          # i18n React 훅(useT/useLocale)
+│   │   ├── assets.ts           # 로고/아이콘 자산 경로
+│   │   ├── id.ts               # uuid 생성 헬퍼
 │   │   ├── db.ts               # IndexedDB 연결/트랜잭션 공용 레이어
 │   │   ├── dom.ts              # $/$$ 헬퍼 + escHtml (공용)
 │   │   ├── store.ts            # Zustand: settings/toasts
@@ -100,7 +109,7 @@ persora/
 - [ ] 커밋
 
 ## 4. 검증 기준 (PRD Acceptance 매핑)
-- A1 온보딩 모달: `OnboardingModal.ensureApiKey` 경로 점검
+- A1 온보딩 모달: 키 미등록 시 `OnboardingModal`이 화면을 점유하고, 키 입력+동의 저장 후 닫히는지 점검
 - A2 기능 동등성: 페르소나/분석/기록 수동 시나리오
 - A3 네트워크 분리: Network 탭 확인(정적 vs Gemini)
 - A4 영속성: 새로고침 후 IndexedDB/localStorage 유지
