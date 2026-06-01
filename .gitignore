@@ -23,6 +23,7 @@ desktop.ini
 
 # 툴 상태
 .omc
+.claude
 
 # 로그
 *.log
