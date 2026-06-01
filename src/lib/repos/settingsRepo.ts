@@ -74,20 +74,3 @@ export function clearApiKey(): void {
 export function hasApiKey(): boolean {
   return getApiKey() !== null;
 }
-
-/**
- * 키 형식 사전 검증 (서버 호출 없이 빠른 클라이언트 측 체크).
- * 비어 있지 않고, trim 후 길이 >= 20, 공백 없음.
- */
-export function looksLikeKey(key: string): boolean {
-  const trimmed = key.trim();
-  return trimmed.length >= 20 && !/\s/.test(trimmed);
-}
-
-export const settingsRepo = {
-  getApiKey,
-  setApiKey,
-  clearApiKey,
-  hasApiKey,
-  looksLikeKey,
-};

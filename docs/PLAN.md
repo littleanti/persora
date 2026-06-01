@@ -44,14 +44,14 @@ persora/
 │   │   ├── thread.ts           # 대화 thread 파싱/타겟 메시지 검출
 │   │   ├── drafts.ts           # 작성 중 대화 드래프트(localStorage)
 │   │   ├── dataManagement.ts   # 백업/가져오기/전체 삭제
-│   │   ├── gemini.ts           # @google/genai 2.7.0 호출 + extractJson + validateKey
+│   │   ├── gemini.ts           # @google/genai 2.7.0 호출(텍스트+이미지) + extractJson
 │   │   ├── prompts.ts          # 페르소나/분석 프롬프트(server.py 이식)
 │   │   ├── i18n.ts             # KO/EN 사전
 │   │   ├── useI18n.ts          # i18n React 훅(useT/useLocale)
 │   │   ├── assets.ts           # 로고/아이콘 자산 경로
 │   │   ├── id.ts               # uuid 생성 헬퍼
 │   │   ├── db.ts               # IndexedDB 연결/트랜잭션 공용 레이어
-│   │   ├── dom.ts              # $/$$ 헬퍼 + escHtml (공용)
+│   │   ├── dom.ts              # 표시용 포맷 헬퍼(formatDate/getInitial)
 │   │   ├── store.ts            # Zustand: settings/toasts
 │   │   └── repos/
 │   │       ├── settingsRepo.ts # localStorage 기반 키 관리

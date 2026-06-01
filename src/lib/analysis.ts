@@ -73,14 +73,6 @@ export async function analyzeReply(
   return record;
 }
 
-/**
- * 하위 호환 래퍼 — 단일 메시지를 스레드(=마지막 메시지)로 간주하고 의도 없이 분석.
- * @deprecated analyzeReply 사용 권장.
- */
-export function analyzeMessage(personaId: string, message: string): Promise<AnalysisRecord> {
-  return analyzeReply(personaId, { thread: message, intent: '' });
-}
-
 export function listAnalyses(): Promise<AnalysisRecord[]> {
   return analysisRepo.list();
 }

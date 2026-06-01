@@ -8,8 +8,6 @@
 export const TEXT_MODEL = 'gemini-3.1-flash-lite';
 /** 캡처 이미지(비전) 입력 전용 모델. */
 export const IMAGE_MODEL = 'gemma-4-31b-it';
-/** 하위 호환 별칭(기본=텍스트 모델). */
-export const GEMINI_MODEL = TEXT_MODEL;
 
 /**
  * 모델이 thinking budget 제어를 지원하는지 여부.

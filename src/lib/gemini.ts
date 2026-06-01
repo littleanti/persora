@@ -11,7 +11,7 @@ import {
 } from '@/lib/config';
 import { getApiKey } from '@/lib/repos/settingsRepo';
 import { t } from './i18n';
-import type { KeyValidationResult, InlineImage } from '@/lib/types';
+import type { InlineImage } from '@/lib/types';
 
 /**
  * 모델·타임아웃에 맞는 요청 설정을 만든다.
@@ -74,31 +74,6 @@ export async function generate(prompt: string, images?: InlineImage[]): Promise<
       throw new Error(t('err.invalidKey'));
     }
     throw toUserFriendlyError(err);
-  }
-}
-
-/**
- * 주어진 키가 실제로 동작하는지 경량 호출로 확인한다.
- * server.py와 달리 Gemini 직접 호출이므로 "ping" 프롬프트 사용.
- */
-export async function validateKey(key: string): Promise<KeyValidationResult> {
-  const ai = new GoogleGenAI({ apiKey: key });
-
-  try {
-    await ai.models.generateContent({
-      model: TEXT_MODEL,
-      contents: 'ping',
-      config: buildConfig(TEXT_MODEL, TEXT_REQUEST_TIMEOUT_MS),
-    });
-    return { ok: true };
-  } catch (err: unknown) {
-    if (isAuthError(err)) {
-      return { ok: false, error: t('err.invalidKey') };
-    }
-    if (isNetworkError(err)) {
-      return { ok: false, error: t('err.network') };
-    }
-    return { ok: false, error: t('err.keyValidate', { msg: getErrorMessage(err) }) };
   }
 }
 

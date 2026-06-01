@@ -107,9 +107,3 @@ export interface CreatePersonaInput {
   conversation: string;
   images?: InlineImage[];
 }
-
-/** 키 검증 결과. */
-export interface KeyValidationResult {
-  ok: boolean;
-  error?: string;
-}
