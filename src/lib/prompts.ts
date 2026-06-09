@@ -40,7 +40,6 @@ export const PERSONA_FIELDS: string =
 export function buildPersonaPrompt(input: CreatePersonaInput, lang: Lang = 'ko'): string {
   const { name, conversation } = input;
   const myName = input.my_name.trim();
-  const useImages = !!input.images && input.images.length > 0;
   const langDirective = outputLangDirective(lang);
 
   const personaInstruction = `페르소나 분석 시 다음 사항을 반드시 지켜주세요:
@@ -51,13 +50,8 @@ export function buildPersonaPrompt(input: CreatePersonaInput, lang: Lang = 'ko')
 - texting_habits: 메시지 길이·띄어쓰기·줄임말·문장부호 버릇을 실제 관찰된 그대로 적으세요.
 - emotional_tendencies / how_they_seek_response: 표면적 말 너머의 감정과 진짜 욕구(인정·안심·공감·지지 등)까지 짚으세요.`;
 
-  // 입력 소스 블록: 텍스트면 대화를 그대로, 이미지면 첨부 캡처를 읽도록 지시.
-  // 이미지 모드에서는 말풍선 위치(좌/우)·발신자 이름표로 누가 누구인지 판별하라고 안내한다.
-  const sourceBlock = useImages
-    ? `대화 기록은 첨부된 채팅 캡처 이미지에 들어 있습니다. 이미지를 꼼꼼히 읽어 대화 내용을 파악하세요.
-- 말풍선의 좌/우 위치와 이름표를 근거로 각 발화가 누구의 것인지 판별하세요.
-- 여러 장이면 위→아래, 앞→뒤 순서로 시간 흐름을 이어서 해석하세요.`
-    : `대화 기록:
+  // 입력 소스 블록: 붙여넣기/첨부 .txt에서 추출한 대화 텍스트를 그대로 제공한다.
+  const sourceBlock = `대화 기록:
 ${conversation}`;
 
   if (myName) {

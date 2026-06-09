@@ -1,7 +1,8 @@
 # TRD — Persora (Client-First React 아키텍처)
 
-> 문서 버전: 1.3 · 갱신일: 2026-06-02 · 기준: PRD 1.3
+> 문서 버전: 1.4 · 갱신일: 2026-06-09 · 기준: PRD 1.4
 >
+> 1.4 변경: 페르소나 생성 입력을 캡처 이미지 → 카카오톡 대화 파일(.txt) 첨부 + tail 컷으로 변경. `CreatePersonaInput.images` 제거(텍스트 전용), `buildPersonaPrompt`의 이미지 분기 제거. 새 모듈 `src/lib/chatFile.ts`(`parseKakaoChatTail`)와 `config.ts` 상수 `PERSONA_CHAT_TAIL_CHARS` 추가. 분석 경로(`analyzeReply`/`AnalyzeReplyInput.images`/`gemini.generate`의 images 인자/`src/lib/image.ts`/`InlineImage`)는 그대로 유지.
 > 1.3 변경: 메시지 분석(`analyzeReply`)도 캡처 이미지 입력을 받도록 확장. 이미지 모드는 thread 파싱/타겟 검출을 건너뛰고 `generate(prompt, images)`로 멀티모달 호출하며, `buildAnalyzePrompt`가 `useImages` 플래그로 분기한다. `fileToInlineImage`를 `src/lib/image.ts` 공용 모듈로 추출.
 > 1.2 변경: `@google/genai` 2.7.0 업그레이드(런타임 Node 20+), 멀티모달(캡처 이미지) 입력 반영, 텍스트/이미지 이중 모델·thinking budget·요청 타임아웃 명시, API 키 온보딩/관리 흐름 단순화 반영.
 
@@ -104,14 +105,16 @@ export interface PersonaSummary {
 }
 
 // 멀티모달 입력용 인라인 이미지(채팅 캡처). Gemini가 OCR 없이 이미지에서 대화를 읽음.
+// 메시지 분석(AnalyzeReplyInput.images) 전용. 페르소나 생성은 더 이상 이미지를 받지 않는다.
 export interface InlineImage {
   mimeType: string;        // 'image/png' | 'image/jpeg' ...
   data: string;            // base64 (data URL 접두어 제외)
 }
 
-// 페르소나 생성 입력. 텍스트 모드는 conversation, 이미지 모드는 images 를 채운다.
+// 페르소나 생성 입력. 텍스트 전용(대화 붙여넣기 또는 .txt 첨부 → tail 컷 결과를 conversation 에 담음).
+// 이미지 분기는 제거되었다(InlineImage 는 분석 경로 AnalyzeReplyInput.images 가 계속 사용).
 export interface CreatePersonaInput {
-  name: string; my_name: string; conversation: string; images?: InlineImage[];
+  name: string; my_name: string; conversation: string;
 }
 ```
 > 그 외 코드에는 `PersonaFields.texting_habits`, `PersonaRecord.updated_at`, 답장 의도(`ReplyIntentKey`/`REPLY_INTENTS`/`AnalyzeReplyInput`)와 `AnalysisRecord`의 선택 필드(`thread`/`target_message`/`intent`)가 추가되어 있다. 모두 선택 필드로 구 레코드 무회귀를 유지한다. 단일 진실은 `src/lib/types.ts`.
@@ -126,6 +129,8 @@ export function modelSupportsThinkingConfig(model: string): boolean; // model.st
 
 export const TEXT_REQUEST_TIMEOUT_MS = 60_000;       // 텍스트 경로
 export const IMAGE_REQUEST_TIMEOUT_MS = 180_000;     // 이미지+gemma 경로(응답 ~60s+ 대비 넉넉히)
+
+export const PERSONA_CHAT_TAIL_CHARS = 16000;        // 페르소나 생성에 사용할 첨부 대화 파일의 말미 글자 수 상한
 
 export const API_KEY_STORAGE_KEY = 'pm_gemini_key';
 export const LEGACY_COOKIE_KEY_NAME = 'pm_gemini_key';
@@ -156,7 +161,8 @@ export function extractJson(text: string): Record<string, unknown>;
 
 ### 3.5 `src/lib/prompts.ts` (프롬프트 — Wave 1: AI)
 ```ts
-// server.py의 프롬프트를 그대로 이식. 페르소나/분석 모두 useImages 분기로 캡처 이미지 입력 지원.
+// server.py의 프롬프트를 그대로 이식. 페르소나는 텍스트 전용(이미지 분기 제거),
+// 분석은 useImages 분기로 캡처 이미지 입력을 계속 지원.
 export function buildPersonaPrompt(input: CreatePersonaInput, lang?: Lang): string;
 export function buildAnalyzePrompt(input: {
   persona: PersonaRecord; thread: string; targetMessage: string; intent: string; useImages?: boolean;
@@ -195,7 +201,16 @@ export async function listPersonaSummaries(): Promise<PersonaSummary[]>;
 export async function getPersona(id: string): Promise<PersonaRecord | null>;
 export async function removePersona(id: string): Promise<void>;
 ```
-- `createPersona`: `buildPersonaPrompt` → `gemini.generate` → `extractJson` → 정규화(other/my 분리) → `personaRepo.put`.
+- `createPersona`: `buildPersonaPrompt` → `gemini.generate(prompt)`(이미지 인자 없음, 텍스트 전용) → `extractJson` → 정규화(other/my 분리) → `personaRepo.put`. `conversation`이 비거나 너무 짧으면 기존 검증(`toast.convTooShort`)을 유지한다.
+
+### 3.7b `src/lib/chatFile.ts` (Wave 2 — 페르소나 생성 전용)
+```ts
+// 카카오톡 export(.txt) 또는 평문 라인-단위 샘플을 받아 말미(tail)만 잘라 반환한다.
+export function parseKakaoChatTail(rawText: string, maxChars: number): string;
+```
+- 동작: ① CRLF/CR → LF 정규화 → ② 선두 export 머리말 제거(예: "…님과의 대화", "저장한 날짜 : …", "Date Saved : …", "--------------- YYYY년 M월 D일 … ---------------" 날짜 구분선). 매칭 안 되면 원문 유지(견고하게, 평문 샘플도 통과) → ③ 말미에서 `maxChars`자만 취하되, 잘릴 경우 줄 중간 절단을 피하기 위해 첫 줄바꿈 이후부터 시작(부분 줄 버림) → ④ `trim` 후 반환.
+- 화자 라벨/타임스탬프는 보존한다(LLM이 화자 구분에 사용). 평문 라인-단위 샘플(헤더 없음)과 실제 export 형식(타임스탬프/이름 라벨 포함) 양쪽에서 합리적으로 동작해야 한다.
+- 호출처: `PersonaPage`의 새 페르소나 모달이 `.txt` 첨부를 읽어 `parseKakaoChatTail(text, PERSONA_CHAT_TAIL_CHARS)` 결과를 conversation textarea에 채운다. 메시지 분석(`AnalyzePage`)은 이 모듈을 사용하지 않는다(캡처 이미지 모드 유지, `src/lib/image.ts` 사용).
 
 ### 3.8 `src/lib/analysis.ts` (Wave 2)
 ```ts
@@ -214,7 +229,7 @@ export async function removeAnalysis(id: string): Promise<void>;
 - `components/OnboardingModal.tsx`: 키가 없을 때 화면을 점유하는 중앙 카드 모달을 렌더한다. 키 입력 + 동의 체크박스만으로 localStorage에 저장한다("나중에 하기"/실시간 검증 호출 없이 단순화). 키가 있으면 렌더하지 않는다.
 - `components/ApiKeyStatus.tsx`: 키가 있을 때만 헤더에 "● Gemini 준비됨" 인디케이터를 렌더하고, 클릭 시 인라인 변경/삭제 UI를 연다. (키 변경·삭제 진입점은 설정이 아니라 헤더다.)
 - `components/LanguageToggle.tsx`: KO/EN segmented pill 토글을 렌더한다.
-- `routes/PersonaPage.tsx`: 페르소나 목록/생성 모달/상세 모달을 React state로 렌더한다.
+- `routes/PersonaPage.tsx`: 페르소나 목록/생성 모달/상세 모달을 React state로 렌더한다. 생성 모달은 텍스트/이미지 토글 없이 단일 흐름이다: 대화 텍스트 textarea + "카카오톡 대화 파일(.txt) 첨부" 버튼. 첨부 시 `chatFile.parseKakaoChatTail`로 머리말 제거·tail 컷한 결과를 textarea에 채우고, 사용한 분량(글자수)을 짧게 안내한다.
 - `routes/AnalyzePage.tsx`: 페르소나 선택, 받은 메시지 분석, 후보 복사 UI를 React state로 렌더한다.
 - `routes/HistoryPage.tsx`: 기록 목록/펼치기/삭제를 React state로 렌더한다.
 - `routes/SettingsPage.tsx`: 백업 내보내기/가져오기, 전체 로컬 데이터 삭제, 개인정보/면책 고지를 렌더한다.
@@ -266,7 +281,7 @@ export async function removeAnalysis(id: string): Promise<void>;
 ## 8. 보안 고려
 - XSS: 사용자/LLM 출력은 React 텍스트 렌더링으로 처리한다. HTML/Markdown 렌더링을 추가하면 sanitizer가 필요하다.
 - 키 저장: API 키는 localStorage에 저장한다. 브라우저 JS가 Gemini 호출에 키를 사용해야 하므로 클라이언트에서 읽을 수 있다. 사용자에게 Google Cloud에서 Gemini API 제한과 HTTP referrer 제한을 권장한다.
-- 데이터 전송: 페르소나 생성/분석 시 대화 텍스트와 캡처 이미지는 Google Gemini API로 직접 전송된다. 앱 자체 서버에는 저장하지 않는다.
+- 데이터 전송: 페르소나 생성 시 대화 텍스트(첨부 .txt의 tail 컷 결과 포함), 메시지 분석 시 대화 텍스트와 캡처 이미지는 Google Gemini API로 직접 전송된다. 앱 자체 서버에는 저장하지 않는다.
 - 운영 기능: 설정 화면에서 API 키를 제외한 백업을 내보내고, 백업을 가져오고, API 키/페르소나/기록/드래프트 전체 삭제를 수행한다.
 - 배포 헤더: GitHub Pages에서는 Express 보안 헤더가 적용되지 않으므로 CSP/referrer meta를 사용한다. 헤더 수준 정책이 필요하면 커스텀 도메인 + 프록시/CDN을 고려한다.
 - 로깅: 키/대화/프롬프트를 콘솔에 남기지 않음(디버그 로그 가드).

@@ -25,6 +25,9 @@ export function modelSupportsThinkingConfig(model: string): boolean {
 export const TEXT_REQUEST_TIMEOUT_MS = 60_000;
 export const IMAGE_REQUEST_TIMEOUT_MS = 180_000;
 
+/** 페르소나 생성에 사용할 첨부 대화 파일(.txt)의 말미 글자 수 상한. 최근 대화일수록 현재 말투/관계를 잘 반영하므로 tail만 사용한다. */
+export const PERSONA_CHAT_TAIL_CHARS = 16000;
+
 /** API 키를 보관하는 localStorage 키. */
 export const API_KEY_STORAGE_KEY = 'pm_gemini_key';
 

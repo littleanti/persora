@@ -1,7 +1,8 @@
 # PLAN — Persora React UI/UX 동기화 실행 계획
 
-> 문서 버전: 1.3 · 갱신일: 2026-06-02 · 기준: PRD 1.3 / TRD 1.3 / WIREFRAMES 1.0
+> 문서 버전: 1.4 · 갱신일: 2026-06-09 · 기준: PRD 1.4 / TRD 1.4 / WIREFRAMES 2026-06-09
 >
+> 1.4 변경: 페르소나 생성 입력을 캡처 이미지 → 카카오톡 대화 파일(.txt) 첨부 + tail 컷으로 변경. 새 모듈 `src/lib/chatFile.ts`(`parseKakaoChatTail`)와 `PERSONA_CHAT_TAIL_CHARS` 상수 추가. 분석하기 캡처 이미지 입력·`src/lib/image.ts`는 유지.
 > 1.3 변경: 분석하기에도 텍스트/캡처 이미지 입력 토글 추가, `fileToInlineImage` 공용 모듈(`src/lib/image.ts`) 분리 반영.
 > 1.2 변경: 디렉터리 구조를 현재 코드 기준으로 갱신(i18n·drafts·assets 추가), `@google/genai` 2.7.0(Node 20+) 반영.
 
@@ -33,17 +34,18 @@ persora/
 │   │   ├── ErrorBoundary.tsx
 │   │   └── Toast.tsx
 │   ├── routes/
-│   │   ├── PersonaPage.tsx     # 텍스트/캡처 이미지 입력 페르소나 생성
+│   │   ├── PersonaPage.tsx     # 텍스트 붙여넣기 + .txt 첨부(tail 컷) 페르소나 생성
 │   │   ├── AnalyzePage.tsx     # 텍스트/캡처 이미지 입력 메시지 분석
 │   │   ├── HistoryPage.tsx
 │   │   └── SettingsPage.tsx
 │   ├── lib/
 │   │   ├── config.ts           # 모델명(text/image)/타임아웃/localStorage 키/DB 상수
 │   │   ├── types.ts            # 공유 타입 계약
-│   │   ├── persona.ts          # 페르소나 유스케이스(텍스트+이미지)
+│   │   ├── persona.ts          # 페르소나 유스케이스(텍스트 전용)
 │   │   ├── analysis.ts         # 분석 유스케이스(thread/캡처 이미지 + 답장 의도)
 │   │   ├── thread.ts           # 대화 thread 파싱/타겟 메시지 검출
-│   │   ├── image.ts            # File → InlineImage 변환 헬퍼(페르소나/분석 공용)
+│   │   ├── image.ts            # File → InlineImage 변환 헬퍼(분석 캡처 전용)
+│   │   ├── chatFile.ts         # 카카오톡 .txt 머리말 제거 + 말미(tail) 컷(페르소나 생성 전용)
 │   │   ├── drafts.ts           # 작성 중 대화 드래프트(localStorage)
 │   │   ├── dataManagement.ts   # 백업/가져오기/전체 삭제
 │   │   ├── gemini.ts           # @google/genai 2.7.0 호출(텍스트+이미지) + extractJson

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import type { InlineImage, PersonaFields, PersonaRecord, PersonaSummary } from '@/lib/types';
+import type { PersonaFields, PersonaRecord, PersonaSummary } from '@/lib/types';
 import { formatDate, getInitial } from '@/lib/dom';
-import { fileToInlineImage } from '@/lib/image';
+import { parseKakaoChatTail } from '@/lib/chatFile';
+import { PERSONA_CHAT_TAIL_CHARS } from '@/lib/config';
 import { t } from '@/lib/i18n';
 import { createPersona, getPersona, listPersonaSummaries, removePersona, updatePersona } from '@/lib/persona';
 import { useApp } from '@/lib/store';
 import { useLocale, useT } from '@/lib/useI18n';
 
-type InputMode = 'text' | 'image';
 type DetailTab = 'other' | 'me';
 
 const FIELD_LABELS: Record<string, string> = {
@@ -117,9 +117,10 @@ function CreatePersonaDialog({
   const [name, setName] = useState('');
   const [myName, setMyName] = useState('');
   const [conversation, setConversation] = useState('');
-  const [mode, setMode] = useState<InputMode>('text');
-  const [images, setImages] = useState<InlineImage[]>([]);
+  // 파일 첨부 후 사용한 분량 안내 문구(없으면 null). textarea를 직접 수정하면 지운다.
+  const [attachedInfo, setAttachedInfo] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // 백드롭 클릭으로만 닫기 — textarea에서 드래그(텍스트 선택) 후 백드롭에서 손을 떼면
   // click 이벤트가 공통 조상(백드롭)에서 발생해 모달이 잘못 닫히는 버그를 막는다.
   const pressedOnBackdrop = useRef(false);
@@ -130,18 +131,28 @@ function CreatePersonaDialog({
     setName('');
     setMyName('');
     setConversation('');
-    setMode('text');
-    setImages([]);
+    setAttachedInfo(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const onFiles = async (files: FileList | null) => {
-    if (!files?.length) return;
-    try {
-      const next = await Promise.all(Array.from(files).map(fileToInlineImage));
-      setImages((current) => [...current, ...next]);
-    } catch {
-      pushToast(translate('toast.imageLoadFail'), 'error');
-    }
+  // 카카오톡 대화 파일(.txt) 첨부 — 파일 텍스트를 읽어 머리말 제거 + tail 컷한 결과로 textarea를 채운다.
+  const onFile = (file: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const raw = String(reader.result ?? '');
+      const tail = parseKakaoChatTail(raw, PERSONA_CHAT_TAIL_CHARS);
+      setConversation(tail);
+      // 원본 대비 잘렸는지에 따라 안내 문구를 다르게 보여준다.
+      const trimmedRawLen = raw.trim().length;
+      setAttachedInfo(
+        trimmedRawLen > tail.length
+          ? translate('create.attachedInfoTrimmed', { n: tail.length, total: trimmedRawLen })
+          : translate('create.attachedInfo', { n: tail.length }),
+      );
+    };
+    reader.onerror = () => pushToast(translate('toast.chatFileReadFail'), 'error');
+    reader.readAsText(file);
   };
 
   const onCreate = async () => {
@@ -156,17 +167,8 @@ function CreatePersonaDialog({
       return;
     }
 
-    let payloadConversation = conversation.trim();
-    let payloadImages: InlineImage[] | undefined;
-
-    if (mode === 'image') {
-      if (images.length === 0) {
-        pushToast(translate('toast.addImage'), 'error');
-        return;
-      }
-      payloadImages = images;
-      payloadConversation = translate('placeholder.imageCreated', { n: images.length });
-    } else if (payloadConversation.length < 20) {
+    const payloadConversation = conversation.trim();
+    if (payloadConversation.length < 20) {
       pushToast(translate('toast.convTooShort'), 'error');
       return;
     }
@@ -177,7 +179,6 @@ function CreatePersonaDialog({
         name: trimmedName,
         my_name: trimmedMyName,
         conversation: payloadConversation,
-        images: payloadImages,
       });
       pushToast(translate('toast.personaCreated', { name: trimmedName }), 'success');
       reset();
@@ -241,55 +242,40 @@ function CreatePersonaDialog({
             </label>
           </div>
 
-          <div className="flex rounded-2xl bg-slate-100 p-1 text-xs font-semibold">
-            {(['text', 'image'] as InputMode[]).map((item) => (
-              <button
-                key={item}
-                onClick={() => setMode(item)}
-                className={`flex-1 rounded-xl px-3 py-2 transition-colors ${
-                  mode === item ? 'bg-white text-indigo-600 shadow-soft-sm' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                {item === 'text' ? translate('create.tabText') : translate('create.tabImage')}
-              </button>
-            ))}
-          </div>
+          <textarea
+            value={conversation}
+            onChange={(e) => {
+              setConversation(e.target.value);
+              setAttachedInfo(null); // 직접 편집하면 첨부 안내 문구를 지운다.
+            }}
+            rows={8}
+            placeholder={translate('create.convPlaceholder')}
+            className="w-full flex-1 min-h-[10rem] bg-slate-50 border-[1.5px] border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white resize-none transition-colors leading-relaxed"
+          />
 
-          {mode === 'text' ? (
-            <>
-              <textarea
-                value={conversation}
-                onChange={(e) => setConversation(e.target.value)}
-                rows={8}
-                placeholder={translate('create.convPlaceholder')}
-                className="w-full flex-1 min-h-[10rem] bg-slate-50 border-[1.5px] border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white resize-none transition-colors leading-relaxed"
-              />
-              <p className="text-xs text-slate-400 leading-relaxed shrink-0">{translate('create.textHint')}</p>
-            </>
+          {/* 카카오톡 대화 파일(.txt) 첨부 — 읽어서 머리말 제거 + tail 컷 결과를 위 textarea에 채운다. */}
+          <label className="flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-500 cursor-pointer hover:border-indigo-300 hover:text-indigo-500 transition-colors shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,text/plain"
+              hidden
+              onChange={(e) => {
+                onFile(e.target.files?.[0] ?? null);
+                // 같은 파일을 다시 첨부해도 value가 그대로면 onChange가 재발생하지 않는다.
+                // 파일 참조는 위에서 이미 넘겼으므로 값을 비워 재선택이 항상 동작하게 한다.
+                e.target.value = '';
+              }}
+            />
+            <span>{translate('create.attachFile')}</span>
+          </label>
+
+          {attachedInfo ? (
+            <p className="text-xs text-indigo-500 leading-relaxed shrink-0">{attachedInfo}</p>
           ) : (
-            <>
-              <label className="flex flex-1 flex-col items-center justify-center gap-2 min-h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 text-sm font-medium cursor-pointer hover:border-indigo-300 hover:text-indigo-500 transition-colors">
-                <input type="file" accept="image/*" multiple hidden onChange={(e) => void onFiles(e.target.files)} />
-                <span>{translate('create.imageDropzone')}</span>
-              </label>
-              {images.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {images.map((img, index) => (
-                    <div key={`${img.data.slice(0, 12)}-${index}`} className="relative w-16 h-16 overflow-hidden rounded-xl border border-slate-200">
-                      <img src={`data:${img.mimeType};base64,${img.data}`} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => setImages((current) => current.filter((_, i) => i !== index))}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/70 text-white text-xs leading-none"
-                      >
-                        x
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <p className="text-xs text-slate-400 leading-relaxed">{translate('create.imageHint')}</p>
-            </>
+            <p className="text-xs text-slate-400 leading-relaxed shrink-0">{translate('create.attachHint')}</p>
           )}
+          <p className="text-xs text-slate-400 leading-relaxed shrink-0">{translate('create.textHint')}</p>
 
           <button
             onClick={() => void onCreate()}

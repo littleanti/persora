@@ -39,7 +39,7 @@ export async function createPersona(input: CreatePersonaInput): Promise<PersonaR
   const myName = input.my_name.trim();
 
   const prompt = buildPersonaPrompt(input, getLang());
-  const text = await generate(prompt, input.images);
+  const text = await generate(prompt);
   const { personaData, myPersonaData } = splitPersonaRaw(extractJson(text), myName);
 
   const record: PersonaRecord = {

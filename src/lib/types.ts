@@ -96,7 +96,8 @@ export interface PersonaSummary {
 /**
  * 멀티모달 입력용 인라인 이미지.
  * Gemini는 멀티모달 모델이므로 채팅 캡처 이미지를 그대로 전달하면
- * 별도 OCR 없이 이미지에서 대화 텍스트를 읽어 페르소나를 생성한다.
+ * 별도 OCR 없이 이미지에서 대화 텍스트를 읽는다.
+ * 메시지 분석(AnalyzeReplyInput.images) 전용 — 페르소나 생성은 더 이상 이미지를 받지 않는다.
  */
 export interface InlineImage {
   mimeType: string; // 예: 'image/png', 'image/jpeg'
@@ -104,13 +105,11 @@ export interface InlineImage {
 }
 
 /**
- * 페르소나 생성 입력.
- * - 텍스트 모드: conversation 에 대화 텍스트를 넣는다 (images 비움).
- * - 이미지 모드: images 에 채팅 캡처를 넣는다 (conversation 은 표시용 플레이스홀더/빈 값).
+ * 페르소나 생성 입력. 텍스트 전용.
+ * conversation 에 대화 텍스트를 넣는다(직접 붙여넣기 또는 .txt 첨부 → tail 컷 결과).
  */
 export interface CreatePersonaInput {
   name: string;
   my_name: string;
   conversation: string;
-  images?: InlineImage[];
 }
